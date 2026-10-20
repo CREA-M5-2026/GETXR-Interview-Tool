@@ -410,21 +410,37 @@ window.DECKS = {
   }
 };
 
-// Follow-up questions for the status part (one is dealt per student).
-window.FOLLOWUPS = {
-  team: [
-    "Who on your team owns that hand-off?",
-    "What do you need from them, and by when?",
-    "Is that agreed anywhere in writing: an issue, a channel, a doc?",
-    "What have you tried so far?",
-    "What happens if this isn't solved by Week 10?",
-    "What's the smallest version that would still work for the demo?"
-  ],
-  solo: [
-    "What part of the XR demo doesn't work yet?",
-    "What's the riskiest part left?",
-    "What would you cut if time runs out?",
-    "Have you tried it in a headset (or on the webcam) yet?",
-    "What have you tried so far?"
-  ]
-};
+// Advice for the project check-in. The TA picks what fits the student's challenge
+// and offers one concrete next step. "only" limits a topic to team or solo students.
+window.ADVICE = [
+  { id: "bug", label: "Stuck on a bug", tips: [
+    "Rebuild the problem in a small test scene with only the parts involved.",
+    "Add `Debug.Log` at each step to see where the values go wrong, or set a breakpoint.",
+    "Start from the first error in the Console, not the last one."
+  ]},
+  { id: "handoff", label: "Unclear hand-off with a teammate", only: "team", tips: [
+    "Agree on one method or event together and write it down in the team channel.",
+    "Build against a stand-in: a fake version of the teammate's side that returns test values.",
+    "Pick a day when both sides are pushed and tried together."
+  ]},
+  { id: "how", label: "Not sure how to build it", tips: [
+    "Find the closest assignment (A1–A6) and start from that pattern.",
+    "Look at the matching session slides, then build the smallest version that works.",
+    "Bring what you tried to the TA hours."
+  ]},
+  { id: "scope", label: "Too much left to do", tips: [
+    "List what the demo must show, then cut or fake the rest.",
+    "Get a rough version working end to end before polishing any part.",
+    "Do first the feature that would hurt most if it were missing."
+  ]},
+  { id: "xr", label: "XR or device setup", tips: [
+    "Get it working in the XR Simulator first, then on the headset.",
+    "Check the tips on the A6 page: Interaction Layers, Attach Transform, OpenXR runtime.",
+    "Book a headset early and test it with someone else."
+  ]},
+  { id: "git", label: "Git or merge trouble", tips: [
+    "Give each person their own scene or prefab, so scenes don't clash.",
+    "Pull before you start, commit small, push often.",
+    "Agree who owns which scene before editing it."
+  ]}
+];

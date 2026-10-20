@@ -77,7 +77,7 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.05e
 .tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
 
 /* content */
-main{padding:16px 0 48px}
+main{padding:28px 0 48px}
 .step{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:12px}
 .step.now{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .step-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
@@ -130,6 +130,8 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
 .hint{font-size:13px;color:var(--muted);margin:6px 0 0}
 .ai{font-size:13.5px;margin:6px 0 0;padding:8px 10px;border-radius:6px;background:var(--sunk)}
 .ai b{font-weight:600}
+.tips{margin:4px 0 6px;padding:8px 10px 8px 28px;background:var(--sunk);border-radius:6px;font-size:14px}
+.tips li{margin:3px 0}
 
 /* deck tabs */
 .deck-h{margin:0 0 4px;font-size:18px}
@@ -172,7 +174,7 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
 <script>
 (function(){
 "use strict";
-const D = window.DECKS, F = window.FOLLOWUPS;
+const D = window.DECKS;
 
 /* ---------- safe storage (rotation memory only; no student data) ---------- */
 const store = {
@@ -206,7 +208,7 @@ function reset(keepMode){
   S = { mode, tab:"flow", aiPath:null, sugg:null,
         timer:{running:false, start:0, acc:0}, phase:0, phaseAt:0,
         probes:[blankProbe(), blankProbe(), blankProbe()],
-        follow:null, armedNext:false };
+        advice:null, armedNext:false };
 }
 reset(false);
 
@@ -404,7 +406,6 @@ function aiHint(){
 function renderFlow(){
   const mode = MODES[S.mode], v = verdict(), p3 = v.k==="third" || S.probes[2].deck || S.probes[2].result;
   const team = S.mode==="bt";
-  if(mode.status && !S.follow) S.follow = pickFollow();
   return `
   <section class="step" data-phase="0"><div class="step-h"><h2>Setup</h2><span class="t">1 min</span><span class="nowtag" hidden>now</span></div>
     <ul class="checks">
@@ -427,18 +428,18 @@ function renderFlow(){
   ${mode.status ? statusHTML(team) : `<section class="step"><div class="step-h"><h2>Hand over</h2></div><p class="note">Check done. Send them to Maro's table for the 10-minute talk.</p></section>`}
   `;
 }
-function pickFollow(){
-  const list = F[S.mode==="bs"?"solo":"team"];
-  let i; do { i = Math.floor(Math.random()*list.length); } while(list.length>1 && list[i]===S.follow);
-  return list[i];
-}
 function statusHTML(team){
-  return `<section class="step" data-phase="3"><div class="step-h"><h2>Status: two prepared points</h2><span class="t">5 min</span><span class="nowtag" hidden>now</span></div>
-    <p class="note">Type one line per point into Notion while you listen.</p>
+  const only = team ? "team" : "solo";
+  const topics = window.ADVICE.filter(t => !t.only || t.only === only);
+  const cur = topics.find(t => t.id === S.advice);
+  return `<section class="step" data-phase="3"><div class="step-h"><h2>Project check-in</h2><span class="t">5 min</span><span class="nowtag" hidden>now</span></div>
+    <p class="note">They bring two points. Listen, ask what they've tried, then help them find one concrete next step.</p>
     <p class="quote">1. What's your current challenge in your own ${team?"sub-system":"project"}?</p>
     <p class="quote">2. ${team ? "Where does your code meet a teammate's code, and what's unclear or not agreed yet?" : "What's still open in the XR part of your demo?"}</p>
-    <div class="row"><span class="lab">Follow-up</span><span style="font-weight:600">“${esc(S.follow)}”</span><button class="btn small" data-act="follow">Another</button></div>
-    <p class="hint">Not prepared? Ask both questions anyway and tick Unprepared. These points go to the IMDEV team, the outcome doesn't.</p>
+    <div class="row"><span class="lab">Help with</span>${topics.map(t =>
+      `<button class="chip" data-act="advice" data-v="${t.id}" aria-pressed="${S.advice===t.id}">${esc(t.label)}</button>`).join("")}</div>
+    ${cur ? `<ul class="tips">${cur.tips.map(x=>`<li>${rich(x)}</li>`).join("")}</ul>` : ""}
+    <p class="hint">Offer what fits, in your own words. Note their two points and your advice in Notion; it goes to ${team?"their IMDEV team":"them directly"}. Not prepared? Ask both questions anyway and tick Unprepared.</p>
   </section>`;
 }
 
@@ -533,7 +534,7 @@ document.addEventListener("click", e => {
   const a = b.dataset.act, v = b.dataset.v, i = b.dataset.p !== undefined ? Number(b.dataset.p) : null;
   if(a !== "next" && S.armedNext){ S.armedNext = false; }
   switch(a){
-    case "mode": S.mode = v; store.set("crg-mode", v); S.follow = null;
+    case "mode": S.mode = v; store.set("crg-mode", v); S.advice = null;
       // reset probe decks that no longer fit
       S.probes.forEach(p => { if(p.card && !cardsFor(p.deck).some(c=>c.id===p.card)) Object.assign(p, blankProbe()); });
       break;
@@ -558,7 +559,7 @@ document.addEventListener("click", e => {
     case "fail": { const p = S.probes[i]; p.fails = p.fails.includes(v) ? p.fails.filter(x=>x!==v) : p.fails.concat(v); break; }
     case "ai": { const p = S.probes[i]; p.ai = p.ai===v ? null : v; break; }
     case "aipath": S.aiPath = S.aiPath===v ? null : v; break;
-    case "follow": S.follow = pickFollow(); break;
+    case "advice": S.advice = S.advice===v ? null : v; break;
     case "copy": b.setAttribute("data-copying",""); copyOut(copyText(i)); return;
   }
   render();
