@@ -377,10 +377,10 @@ function probeHTML(i){
       <button class="chip res-unclear" data-act="res" data-p="${i}" data-v="unclear" aria-pressed="${p.result==="unclear"}">Unclear</button></div>
     ${p.result==="unclear" ? `<div class="row"><span class="lab">Stalled at</span>${STEPS.map(s =>
       `<button class="chip res-unclear" data-act="fail" data-p="${i}" data-v="${s}" aria-pressed="${p.fails.includes(s)}">${s}</button>`).join("")}</div>`:""}
-    <div class="row"><span class="lab">How it came about</span>
-      <button class="chip res-clear" data-act="ai" data-p="${i}" data-v="yes" aria-pressed="${p.ai==="yes"}">Matches path</button>
-      <button class="chip res-doubt" data-act="ai" data-p="${i}" data-v="no" aria-pressed="${p.ai==="no"}">Doesn't match</button>
-      <button class="chip res-unclear" data-act="ai" data-p="${i}" data-v="unsure" aria-pressed="${p.ai==="unsure"}">Unsure</button></div>
+    <div class="row"><span class="lab">How they wrote it</span>
+      <button class="chip res-clear" data-act="ai" data-p="${i}" data-v="yes" aria-pressed="${p.ai==="yes"}">Fits their AI path</button>
+      <button class="chip res-doubt" data-act="ai" data-p="${i}" data-v="no" aria-pressed="${p.ai==="no"}">Doesn't fit</button>
+      <button class="chip res-unclear" data-act="ai" data-p="${i}" data-v="unsure" aria-pressed="${p.ai==="unsure"}">Not sure</button></div>
     <div class="row"><span class="lab">Script</span><input type="text" data-in="script" data-p="${i}" value="${esc(p.script)}" placeholder="e.g. Chaser.cs" aria-label="Script probed"></div>
     `;
   const phase = ["p1","p2","p3"][i];
@@ -393,7 +393,7 @@ function copyText(i){
   const c = p.card ? findCard(p.card).card : null;
   const parts = [deckLabel(p.deck)||"?", p.script||"script?", c?MOVES[c.move]:"?"];
   parts.push(p.result ? (p.result==="clear"?"Clear":"Unclear"+(p.fails.length?" ("+p.fails.join(", ").toLowerCase()+")":"")) : "result?");
-  parts.push("AI: "+(p.ai==="yes"?"matches":p.ai==="no"?"doesn't match":p.ai==="unsure"?"unsure":"?"));
+  parts.push("AI path: "+(p.ai==="yes"?"fits":p.ai==="no"?"doesn't fit":p.ai==="unsure"?"not sure":"?"));
   return parts.join(" · ");
 }
 function notesText(){
@@ -489,7 +489,7 @@ function renderGuide(){
   <tr><td>Predicts with a reason, or self-corrects</td><td>Can't predict, can't explain a wrong result</td></tr>
   <tr><td>Types the change without help</td><td>Needs syntax dictated for a two-line change</td></tr>
   <tr><td>Knows its history (“this broke when…”)</td><td>No memory of writing or debugging it</td></tr>
-  <tr><td>Account matches the declared AI path</td><td>Account contradicts the path</td></tr>
+  <tr><td>Their story of how it was written fits their AI path</td><td>Their story doesn't fit their AI path</td></tr>
   </tbody></table>
   <p><b>Not signals:</b> bugs, messy code, nerves, forgetting an API name, looking something up in the Unity docs. Authorship is the question, not quality.</p>
 
