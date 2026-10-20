@@ -44,9 +44,12 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.05e
 /* top bar */
 .bar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
 .bar-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 8px}
-.modes{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;flex-wrap:wrap}
-.modes button{border:0;background:transparent;padding:6px 10px;font-size:13px;font-weight:500;color:var(--muted);border-right:1px solid var(--line)}
-.modes button:last-child{border-right:0}
+.modes{display:flex;gap:6px 14px;flex-wrap:wrap}
+.mgroup{display:flex;align-items:center;gap:6px}
+.mlab{font-size:12.5px;font-weight:600;color:var(--muted)}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.modes button{border:0;background:transparent;padding:6px 10px;font-size:13px;font-weight:500;color:var(--muted);border-right:1px solid var(--line);white-space:nowrap}
+.seg button:last-child{border-right:0}
 .modes button[aria-pressed="true"]{color:var(--fg);background:var(--accent-t);box-shadow:inset 0 -2px 0 var(--accent)}
 .clock{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .time{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1;min-width:4.6ch;text-align:right}
@@ -179,10 +182,10 @@ const store = {
 
 /* ---------- config ---------- */
 const MODES = {
-  bt: { label:"Bachelor team", short:"Bachelor, team", p1:"A", p2:"PROJECT", only:"team", status:true },
-  bs: { label:"Bachelor solo", short:"Bachelor, solo", p1:"A", p2:"PROJECT", only:"solo", status:true },
-  m:  { label:"Master",           short:"Master",         p1:"A", p2:"MASTER",  status:false },
-  mm: { label:"Mentorship",       short:"Master, Mentorship Path", p1:"TUTORIAL", p2:"MASTER", status:false }
+  bt: { group:"Bachelor", label:"In an IMDEV team", tip:"Notion row shows a DEV team. Final Project is a sub-system of the IMDEV game.", short:"Bachelor, team", p1:"A", p2:"PROJECT", only:"team", status:true },
+  bs: { group:"Bachelor", label:"Solo XR demo", tip:"Notion row shows Solo. Final Project is a stand-alone XR demo.", short:"Bachelor, solo", p1:"A", p2:"PROJECT", only:"solo", status:true },
+  m:  { group:"Master", label:"Standard", tip:"Foundation assignments A1–A6 plus the XR Development Project.",           short:"Master",         p1:"A", p2:"MASTER",  status:false },
+  mm: { group:"Master", label:"Mentorship Path", tip:"Tutorial package instead of A1–A6, plus the XR Development Project.",       short:"Master, Mentorship Path", p1:"TUTORIAL", p2:"MASTER", status:false }
 };
 const ADECKS = ["A1","A2","A3","A4","A5","A6"];
 const WEIGHTS = {A1:1, A2:1, A3:1.5, A4:2, A5:2, A6:2};
@@ -270,8 +273,9 @@ function visibleTabs(){
 /* ---------- render: chrome ---------- */
 function renderChrome(){
   document.body.dataset.mode = S.mode;
-  document.getElementById("modes").innerHTML = Object.entries(MODES).map(([k,v]) =>
-    `<button data-act="mode" data-v="${k}" aria-pressed="${S.mode===k}">${esc(v.label)}</button>`).join("");
+  document.getElementById("modes").innerHTML = ["Bachelor","Master"].map(g =>
+    `<div class="mgroup"><span class="mlab">${g}</span><div class="seg">${Object.entries(MODES).filter(([k,v])=>v.group===g).map(([k,v]) =>
+    `<button data-act="mode" data-v="${k}" aria-pressed="${S.mode===k}" title="${esc(v.tip)}">${esc(v.label)}</button>`).join("")}</div></div>`).join("");
   const tabs = visibleTabs();
   if(!tabs.some(t=>t[0]===S.tab)) S.tab = "flow";
   document.getElementById("tabs").innerHTML = tabs.map(([k,l]) =>
