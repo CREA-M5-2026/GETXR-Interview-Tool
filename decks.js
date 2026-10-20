@@ -86,7 +86,7 @@ window.DECKS = {
         change: "Make every 5th spawned coin worth double.",
         expect: "A counter in Spawner and a value handed to that Collectible: a change across both scripts." },
       { id: "a2-10", move: "why-not", source: "own",
-        locate: "Why an accumulating timer?",
+        locate: "Why did you use an accumulating timer?",
         change: "Ask: why not `InvokeRepeating` or a coroutine?",
         expect: "Both work. Listen for what pausing would mean in each." }
     ]
@@ -125,11 +125,11 @@ window.DECKS = {
         change: "Set the raycast range to `0.5`.",
         expect: "You must stand almost against it. A power-up out of reach can no longer be activated." },
       { id: "a3-10", move: "trace", source: "own",
-        locate: "Touch the hazard: which code runs, in what order?",
+        locate: "When the player touches the hazard, which code runs, in what order?",
         change: "Just trace it, no changes.",
         expect: "Trigger or collision callback on the hazard → reaches the player (tag or component) → damage, knockback or respawn." },
       { id: "a3-11", move: "why-not", source: "own",
-        locate: "Why `controller.Move` and not setting `transform.position`?",
+        locate: "Why did you use `controller.Move` and not set `transform.position`?",
         change: "Ask, then try it if there's time.",
         expect: "Setting the position skips collision handling: you walk through walls and grounding breaks." }
     ]
@@ -148,7 +148,7 @@ window.DECKS = {
         change: "Call `SetDestination` only once, in `Start()`.",
         expect: "It walks to where the player started, then stops." },
       { id: "a4-3", move: "tweak", source: "own",
-        locate: "Which clicks are accepted?",
+        locate: "How do you decide which clicks are accepted?",
         change: "Set the click raycast's layer mask to Everything.",
         expect: "Clicks on walls and props now count as moves. The refusal response may stop triggering." },
       { id: "a4-4", move: "remove", source: "given",
@@ -168,7 +168,7 @@ window.DECKS = {
         change: "Update the path only every 3 seconds.",
         expect: "The chaser heads for old positions and corrects in jumps. Easy to outrun." },
       { id: "a4-10", move: "why-not", source: "own",
-        locate: "Why use the event route for the HUD?",
+        locate: "Why does the HUD use events?",
         change: "Ask: why not read the values in `Update()`?",
         expect: "Polling works. Events only update on change and keep UI and stats separate." }
     ]
@@ -238,7 +238,7 @@ window.DECKS = {
         change: "Make the opening speed 10× faster.",
         expect: "It opens almost instantly, so the 'about a second or longer' requirement fails." },
       { id: "a6-7", move: "trace", source: "own",
-        locate: "Place an object: what runs, in what order?",
+        locate: "When an object goes into a socket, what runs, in what order?",
         change: "Just trace it, no changes.",
         expect: "`selectEntered` → count method → `hasSelection` per socket → text → state → `Update()` moves the response." },
       { id: "a6-8", move: "why-not", source: "own",
@@ -277,7 +277,7 @@ window.DECKS = {
         change: "Remove that guard.",
         expect: "Which error, when, and in which situation." },
       { id: "p-6", move: "extend", source: "own",
-        locate: "Pick an event in your system.",
+        locate: "Show me an event in your system and where it's handled.",
         change: "Add a `Debug.Log` that prints a useful value when it happens.",
         expect: "Typed without help, and in the right place." },
       { id: "p-7", move: "why-not", source: "own",
@@ -351,7 +351,7 @@ window.DECKS = {
         change: "Introduce that mistake.",
         expect: "Recognises the symptom straight away." },
       { id: "t-3", move: "remove", source: "own",
-        locate: "Pick a line the tutorial explains.",
+        locate: "Show me a line your tutorial explains.",
         change: "Remove it.",
         expect: "Predicts what breaks." },
       { id: "t-4", move: "extend", source: "own",
