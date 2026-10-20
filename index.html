@@ -57,8 +57,8 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.05e
 .btn.primary:hover{filter:brightness(1.05);background:var(--accent)}
 .btn.armed{background:var(--doubt);border-color:var(--doubt);color:#fff}
 .btn.small{padding:3px 8px;font-size:12px;font-weight:500}
-.phases{display:flex;gap:3px;padding-bottom:8px}
-.ph{flex:var(--w);min-width:64px;height:22px;border-radius:3px;background:var(--sunk);position:relative;overflow:hidden;font-size:11.5px;color:var(--muted);display:flex;align-items:center;padding:0 6px;white-space:nowrap}
+.phases{display:flex;gap:3px;padding-bottom:8px;overflow-x:auto;scrollbar-width:none}
+.ph{flex:var(--w) 1 auto;min-width:max-content;height:22px;border-radius:3px;background:var(--sunk);position:relative;overflow:hidden;font-size:11.5px;color:var(--muted);display:flex;align-items:center;padding:0 6px;white-space:nowrap}
 .ph i{position:absolute;inset:0 auto 0 0;width:var(--p,0%);background:var(--accent-t)}
 .ph span{position:relative}
 .ph.now{color:var(--fg);font-weight:600;box-shadow:inset 0 0 0 1.5px var(--accent)}
@@ -180,7 +180,7 @@ const ADECKS = ["A1","A2","A3","A4","A5","A6"];
 const WEIGHTS = {A1:1, A2:1, A3:1.5, A4:2, A5:2, A6:2};
 const STEPS = ["Locate","Explain","Predict","Change","Reconcile"];
 const MOVES = {tweak:"Tweak", remove:"Remove", move:"Move it", extend:"Extend", trace:"Trace", "why-not":"Why not"};
-const SOURCES = {own:"Their code", given:"Given in brief/template", editor:"Editor setup"};
+const SOURCES = {own:"Own code", given:"Given in brief/template", editor:"Editor setup"};
 function phasesFor(mode){
   return MODES[mode].status
     ? [{n:"Setup",e:1},{n:"Probe 1",e:6},{n:"Probe 2",e:12},{n:"Status",e:17}]
@@ -232,16 +232,16 @@ function findCard(id){
 function verdict(){
   const [a,b,c] = S.probes;
   if(S.probes.some(p => p.ai === "no"))
-    return {k:"doubt", h:"Doubt: to Maro", t:"How the code came about doesn't match the declared AI path. Write one line why in Notion."};
+    return {k:"doubt", h:"Doubt", t:"Their account doesn't fit the declared AI path. Write down what they said under Evidence in Notion. Maro follows up."};
   if(!a.result || !b.result)
-    return {k:"pending", h:"No verdict yet", t:"Mark probe 1 and probe 2 as clear or unclear."};
+    return {k:"pending", h:"No outcome yet", t:"Mark probe 1 and probe 2 as clear or unclear."};
   const unclear = [a,b].filter(p=>p.result==="unclear").length;
   if(unclear === 0) return {k:"pass", h:"Pass", t:"Two clear probes."};
-  if(unclear === 2) return {k:"doubt", h:"Doubt: to Maro", t:"Both probes unclear. Write one line why in Notion."};
-  if(!c.result) return {k:"third", h:"Do a third probe", t:"One probe was unclear. Pick a different file, ideally a different assignment."};
+  if(unclear === 2) return {k:"doubt", h:"Doubt", t:"Both probes were unclear. Write down where they got stuck under Evidence in Notion. Maro follows up."};
+  if(!c.result) return {k:"third", h:"Do a third probe", t:"One probe was unclear. Pick a different file, ideally from another assignment."};
   return c.result === "clear"
     ? {k:"pass", h:"Pass", t:"The third probe was clear."}
-    : {k:"doubt", h:"Doubt: to Maro", t:"Still unclear after a third probe. Write one line why in Notion."};
+    : {k:"doubt", h:"Doubt", t:"Still unclear after the third probe. Write down where they got stuck under Evidence in Notion. Maro follows up."};
 }
 
 /* ---------- helpers ---------- */
@@ -286,7 +286,7 @@ function renderClock(){
     const pct = el<=s ? 0 : el>=e ? 100 : (el-s)/(e-s)*100;
     const now = el>0 && el>=s && el<e; if(now) nowIdx = i;
     prev = p.e;
-    return `<div class="ph${now?" now":""}" style="--w:${w};--p:${pct}%"><i></i><span>${p.n} ${w}′</span></div>`;
+    return `<div class="ph${now?" now":""}" style="--w:${w};--p:${pct}%"><i></i><span>${p.n} (${w} min)</span></div>`;
   }).join("");
   document.getElementById("phases").innerHTML = html;
   // highlight the matching step in the interview tab
@@ -307,8 +307,8 @@ function cardHTML(deckKey, c, opts){
   return `<div class="card">
     <div class="meta"><span class="tag move">${MOVES[c.move]}</span>${src?`<span class="tag ${src}">${SOURCES[c.source]}</span>`:""}<span class="deckname">${esc(D[deckKey].title)}</span></div>
     <p class="say">${rich(c.locate)}</p>
-    <p class="chg"><b>Then:</b> ${rich(c.change)}</p>
-    ${c.source==="given"?`<p class="hint">This came with the brief or template. Writing it proves little, so judge the prediction and the change.</p>`:""}
+    <p class="chg">${/^(Ask|Just|Trace|Show|Open)\b/.test(c.change)?"":"<b>Then:</b> "}${rich(c.change)}</p>
+    ${c.source==="given"?`<p class="hint">This came with the brief or template, so focus on the prediction and the change.</p>`:""}
     ${exp}
     ${opts.actions||""}
   </div>`;
@@ -320,20 +320,20 @@ function probeHTML(i){
   let title, sub, deckRow = "";
   if(i===0){
     title = mode.p1==="TUTORIAL" ? "Probe 1: tutorial package" : "Probe 1: foundation assignment";
-    sub = mode.p1==="TUTORIAL" ? "Their own tutorial project." : "In the code editor only. The student types the change and says what they would see on Play.";
+    sub = mode.p1==="TUTORIAL" ? "Tutorial project." : "Stay in the code editor. Ask what Play would show instead of running it.";
     if(mode.p1==="A"){
       deckRow = `<div class="row"><span class="lab">Assignment</span>${ADECKS.map(k =>
         `<button class="chip${S.sugg===k&&p.deck!==k?" sugg":""}" data-act="pick" data-p="0" data-v="${k}" aria-pressed="${p.deck===k}">${k}</button>`).join("")}
         <button class="btn small" data-act="suggest">Suggest one</button></div>
-        <p class="hint">Leaning towards A4–A6. Go with the Notion row or the student's code if it points elsewhere (resubmission, uneven quality).</p>`;
+        <p class="hint">Suggestions favour A4–A6. If the Notion row points somewhere else, go with that.</p>`;
     }
   } else if(i===1){
     title = S.mode==="bt"||S.mode==="bs" ? "Probe 2: Final Project" : "Probe 2: XR Development Project";
-    sub = "Run it in Unity for real.";
+    sub = "Run it in Unity.";
     if(S.mode==="bt") sub += " Include a Trace into the teammate's code it connects to.";
   } else {
     title = "Probe 3: a different file";
-    sub = "Pick a file you haven't probed yet, preferably from another assignment.";
+    sub = "Pick a file you haven't probed yet, ideally from another assignment.";
     const decks = (S.mode==="mm" ? ["TUTORIAL"] : ADECKS).concat([mode.p2]);
     deckRow = `<div class="row"><span class="lab">Deck</span>${decks.map(k =>
       `<button class="chip" data-act="pick" data-p="2" data-v="${k}" aria-pressed="${p.deck===k}">${deckLabel(k)}</button>`).join("")}</div>`;
@@ -376,10 +376,10 @@ function copyHTML(i){
   return `<div class="copy"><button class="btn small" data-act="copy" data-p="${i}">Copy for “Probe ${i+1} notes”</button><output id="copy-${i}">${esc(t)}</output></div>`;
 }
 function aiHint(){
-  const no = `<b>No-AI:</b> their account should be about writing it themselves: docs, tutorials, what broke along the way. Code that reads as generated with no story behind it gets a third probe.`;
-  const yes = `<b>AI-Assisted:</b> they say which parts AI produced and what they changed or fixed. Same bar: they still predict and make the change themselves.`;
+  const no = `<b>No-AI:</b> you should hear how they wrote it: docs, tutorials, what went wrong. Code that looks generated with no story behind it gets a third probe.`;
+  const yes = `<b>AI-Assisted:</b> you should hear which parts came from AI and what they changed or fixed. Predicting and changing still count the same.`;
   const body = S.aiPath==="noai" ? no : S.aiPath==="ai" ? yes : no+"<br>"+yes;
-  return `<p class="ai">In each probe, ask: <i>“How did this code come about?”</i><br>${body}<br>An account that contradicts the declared path is a Doubt, not a verdict.</p>`;
+  return `<p class="ai">Ask in every probe: <i>“How did this code come about?”</i><br>${body}<br>If it doesn't fit their declared path, note what they said and mark Doubt.</p>`;
 }
 function renderFlow(){
   const mode = MODES[S.mode], v = verdict(), p3 = v.k==="third" || S.probes[2].deck || S.probes[2].result;
@@ -390,21 +390,21 @@ function renderFlow(){
     <ul class="checks">
       <li>${S.mode==="mm" ? "Tutorial project and XR Development Project open" : S.mode==="m" ? "XR Development Project open in Unity, repositories cloned" : "Final Project open in Unity, A1–A6 repositories cloned"}</li>
       <li>GitLab commit list visible</li>
-      <li>The student's Notion row open: team, pointers, AI path</li>
+      <li>Notion row open: team, pointers, AI path</li>
     </ul>
     <div class="row"><span class="lab">AI path</span>
       <button class="chip" data-act="aipath" data-v="noai" aria-pressed="${S.aiPath==="noai"}">No-AI</button>
       <button class="chip" data-act="aipath" data-v="ai" aria-pressed="${S.aiPath==="ai"}">AI-Assisted</button></div>
     ${aiHint()}
-    <div class="cycle" aria-label="Probe cycle">${STEPS.map((s,i)=>`<span><b>${s}</b>${["","",""," (they type)",""][i]}</span>`).join("")}</div>
-    <p class="hint">The interview is No-AI for everyone. Undo each change afterwards (discard in GitHub Desktop).</p>
+    <div class="cycle" aria-label="Probe cycle">${STEPS.map((s,i)=>`<span><b>${s}</b>${["","",""," (not dictated)",""][i]}</span>`).join("")}</div>
+    <p class="hint">No AI during the interview. Undo each change afterwards (discard in GitHub Desktop).</p>
   </section>
   ${probeHTML(0)}
   ${probeHTML(1)}
   ${p3 ? probeHTML(2) : ""}
   <div class="verdict ${v.k}"><h2>${v.h}</h2><p class="note" style="color:inherit">${v.t}</p>
-    <p class="hint">Say nothing about the result in the room. Copy the verdict into Notion.</p></div>
-  ${mode.status ? statusHTML(team) : `<section class="step"><div class="step-h"><h2>Hand over</h2></div><p class="note">The check is done. The student goes to Maro's table for their 10-minute talk.</p></section>`}
+    <p class="hint">Don't share the outcome in the room. Record it in Notion.</p></div>
+  ${mode.status ? statusHTML(team) : `<section class="step"><div class="step-h"><h2>Hand over</h2></div><p class="note">Check done. Send them to Maro's table for the 10-minute talk.</p></section>`}
   `;
 }
 function pickFollow(){
@@ -413,12 +413,12 @@ function pickFollow(){
   return list[i];
 }
 function statusHTML(team){
-  return `<section class="step" data-phase="3"><div class="step-h"><h2>Status: their two points</h2><span class="t">5 min</span><span class="nowtag" hidden>now</span></div>
-    <p class="note">They come prepared and get to the point. Type one line for each into Notion while they talk.</p>
+  return `<section class="step" data-phase="3"><div class="step-h"><h2>Status: two prepared points</h2><span class="t">5 min</span><span class="nowtag" hidden>now</span></div>
+    <p class="note">Type one line per point into Notion while you listen.</p>
     <p class="quote">1. What's your current challenge in your own ${team?"sub-system":"project"}?</p>
     <p class="quote">2. ${team ? "Where does your code meet a teammate's code, and what's unclear or not agreed yet?" : "What's still open in the XR part of your demo?"}</p>
     <div class="row"><span class="lab">Follow-up</span><span style="font-weight:600">“${esc(S.follow)}”</span><button class="btn small" data-act="follow">Another</button></div>
-    <p class="hint">Not prepared? Ask the two questions directly and tick Unprepared. These points are shared with the IMDEV team; the verdict never is.</p>
+    <p class="hint">Not prepared? Ask both questions anyway and tick Unprepared. These points go to the IMDEV team, the outcome doesn't.</p>
   </section>`;
 }
 
@@ -443,16 +443,16 @@ function renderGuide(){
   <tr><td>Locate</td><td>Name a behaviour, not a file: “Show me where…”</td><td>Goes straight there, or searches file names</td></tr>
   <tr><td>Explain</td><td>“Walk me through this in your own words.” One minute.</td><td>Talks about the effect in the game, or reads code aloud</td></tr>
   <tr><td>Predict</td><td>Propose the change. “Before we try it: what will happen?”</td><td>A concrete answer with a reason, or “it might break”</td></tr>
-  <tr><td>Change</td><td>They type it. Assignments: say what Play would show. Project: run it.</td><td>Types it without syntax being dictated</td></tr>
+  <tr><td>Change</td><td>They type it, you don't dictate. Assignments: say what Play would show. Project: run it.</td><td>Types it without syntax being dictated</td></tr>
   <tr><td>Reconcile</td><td>If it differs: “Why did that happen?”</td><td>Authors usually work it out within a minute</td></tr>
   </tbody></table>
-  <p>You pick the code, not the student. Skip template code; go for TODO areas and what they added. A script much more polished than their other work is the best place for the second probe.</p>
+  <p>You pick the code, not them. Skip template code and go for the TODO parts and anything they added. A script that's much more polished than the rest is a good second probe.</p>
 
   <h2>Reading the signals</h2>
   <table><thead><tr><th>Clear</th><th>Unclear</th></tr></thead><tbody>
   <tr><td>Finds the code without searching</td><td>Searches file names, opens the wrong script</td></tr>
   <tr><td>Explains the effect in the game</td><td>Reads code aloud, or stays generic</td></tr>
-  <tr><td>Predicts with a reason, or corrects themselves</td><td>Can't predict, can't explain a wrong result</td></tr>
+  <tr><td>Predicts with a reason, or self-corrects</td><td>Can't predict, can't explain a wrong result</td></tr>
   <tr><td>Types the change without help</td><td>Needs syntax dictated for a two-line change</td></tr>
   <tr><td>Knows its history (“this broke when…”)</td><td>No memory of writing or debugging it</td></tr>
   <tr><td>Account matches the declared AI path</td><td>Account contradicts the path</td></tr>
@@ -463,8 +463,8 @@ function renderGuide(){
   <ul>
   <li>Two clear probes: <b>Pass</b>.</li>
   <li>One unclear: a third probe on a different file. Clear: Pass. Still unclear: <b>Doubt</b>.</li>
-  <li>An account that contradicts the AI path: <b>Doubt</b>.</li>
-  <li>TAs never mark Fail. Doubt goes to Maro, who re-checks with the same protocol.</li>
+  <li>Their account doesn't fit the declared AI path: <b>Doubt</b>.</li>
+  <li>Doubt isn't a fail. It means: write down what you saw under Evidence, so Maro has something concrete to follow up on. TAs never mark Fail.</li>
   <li>Don't argue it out or hint that something is wrong. Move on to the next probe.</li>
   </ul>
 
@@ -473,7 +473,7 @@ function renderGuide(){
   <tr><td>Tweak</td><td>Change a number or flip a comparison. What happens?</td></tr>
   <tr><td>Remove</td><td>Comment this out. What breaks, and when do we notice?</td></tr>
   <tr><td>Move it</td><td>Move this from <code>Start</code> to <code>Update</code>, or the other way.</td></tr>
-  <tr><td>Extend</td><td>Add one small thing, two or three lines. They type it.</td></tr>
+  <tr><td>Extend</td><td>Add one small thing, two or three lines.</td></tr>
   <tr><td>Trace</td><td>What calls this? What happens just before?</td></tr>
   <tr><td>Why not</td><td>Why this and not X? Only after a change, never as the opener.</td></tr>
   </tbody></table>
@@ -481,10 +481,10 @@ function renderGuide(){
   <h2>In the room</h2>
   <ul>
   <li>Write notes during the slot; there is no separate note time.</li>
-  <li>Team students: one probe in the sub-system, including a Trace into the teammate's code. Disputed ownership: <code>git log --author</code>.</li>
-  <li>Masters on the Mentorship Path: probe 1 is on their tutorial package.</li>
+  <li>Team members: one probe in the sub-system, including a Trace into the teammate's code. Disputed ownership: <code>git log --author</code>.</li>
+  <li>Masters on the Mentorship Path: probe 1 on the tutorial package.</li>
   <li>A third probe takes time from the status part.</li>
-  <li>If you know a student personally, ask another TA to take them.</li>
+  <li>Know them personally? Ask another TA to take over.</li>
   </ul>
   </div>`;
 }
