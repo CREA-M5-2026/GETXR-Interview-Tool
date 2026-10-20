@@ -1,8 +1,8 @@
-// Probe decks for the (M)GETXR Week 9 Code Review Interviews.
+// Check decks for the (M)GETXR Week 9 Code Review Interviews.
 // Edit freely: each card has an id (keep it unique), a move, a source, and three texts.
 //   move:   tweak | remove | move | extend | trace | why-not
 //   source: own   = code the student had to write themselves
-//           given = code that came with the brief or template (probe understanding, not authorship)
+//           given = code that came with the brief or template (check understanding, not authorship)
 // Only code-editor cards: nothing that needs Unity open (Inspector, Hierarchy, Play Mode).
 //   locate: the behaviour the TA names ("show me where...")
 //   change: what the student changes (assignments: typed in the editor, not run)
@@ -60,7 +60,7 @@ window.DECKS = {
       { id: "a2-2", move: "remove", source: "given",
         locate: "Where are destroyed coins removed from the list?",
         change: "Comment out the cleanup (`RemoveAll` or the reverse loop).",
-        expect: "Once Count reaches the cap, spawning stops for good: destroyed entries still count. The snippet is in the brief, so probe the reasoning." },
+        expect: "Once Count reaches the cap, spawning stops for good: destroyed entries still count. The snippet is in the brief, so check the reasoning." },
       { id: "a2-3", move: "tweak", source: "own",
         locate: "Show me the on/off toggle.",
         change: "Let the timer keep counting while the spawner is off.",
@@ -107,7 +107,7 @@ window.DECKS = {
       { id: "a3-3", move: "tweak", source: "given",
         locate: "Where is the jump velocity calculated?",
         change: "Multiply `jumpHeight` by 4.",
-        expect: "Four times higher, but take-off speed only doubles (square root). The formula is in the brief. Probe the reasoning." },
+        expect: "Four times higher, but take-off speed only doubles (square root). The formula is in the brief. Check the reasoning." },
       { id: "a3-4", move: "tweak", source: "given",
         locate: "What keeps the player grounded?",
         change: "Set the small downward snap (`-2f`) to `0`.",
@@ -284,10 +284,6 @@ window.DECKS = {
         locate: "Why is it structured this way (manager, events, singleton…)?",
         change: "Ask for one alternative and what it would cost.",
         expect: "A reason tied to the project, not a textbook line." },
-      { id: "p-8", move: "trace", source: "own",
-        locate: "Show me your last commit. What was it for?",
-        change: "Open the diff and explain one change.",
-        expect: "Remembers the problem it solved." },
       { id: "p-9", move: "trace", source: "own", only: "solo",
         locate: "Where does the XR input (grab, teleport, tracking) reach your own code?",
         change: "Trace it from the interactor to your handler.",
@@ -327,10 +323,6 @@ window.DECKS = {
         locate: "Why this measure, or this way of logging?",
         change: "Ask for one alternative.",
         expect: "A reason tied to the research question." },
-      { id: "m-7", move: "trace", source: "own",
-        locate: "Show me your last commit. What was it for?",
-        change: "Open the diff and explain one change.",
-        expect: "Remembers the problem it solved." },
       { id: "m-8", move: "why-not", source: "own",
         locate: "Show me the code that was hardest to get right.",
         change: "Ask: what broke, and how did you find it?",

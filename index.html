@@ -108,7 +108,7 @@ main.wrap{padding-top:24px;padding-bottom:48px}
 .chip.res-doubt[aria-pressed="true"]{background:var(--doubt-t);border-color:var(--doubt)}
 input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%;max-width:280px}
 
-/* the probe card: the one bold element */
+/* the check card: the one bold element */
 .card{position:relative;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:4px 8px 8px 4px;padding:12px 14px 12px 14px;margin:8px 0}
 .card .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;font-size:12px}
 .tag{border-radius:3px;padding:1px 6px;font-weight:600;background:var(--sunk);color:var(--muted)}
@@ -211,8 +211,8 @@ const SOURCES = {own:"Own code", given:"Given in brief/template"};
 function needsThird(){ return verdict().k==="third" || !!S.probes[2].deck || !!S.probes[2].result; }
 function phasesFor(mode){
   const third = needsThird(), st = MODES[mode].status;
-  const list = [{id:"setup",n:"Setup",len:1},{id:"p1",n:"Probe 1",len:5},{id:"p2",n:"Probe 2",len:6}];
-  if(third) list.push({id:"p3",n:"Probe 3",len:st?3:4});
+  const list = [{id:"setup",n:"Setup",len:1},{id:"p1",n:"Check 1",len:5},{id:"p2",n:"Check 2",len:6}];
+  if(third) list.push({id:"p3",n:"Check 3",len:st?3:4});
   if(st) list.push({id:"checkin",n:"Check-in",len:third?2:5});
   let e = 0; list.forEach(p => { e += p.len; p.e = e; });
   return list;
@@ -225,7 +225,7 @@ function reset(keepMode){
   const mode = keepMode && S ? S.mode : (store.get("crg-mode","bt"));
   S = { mode, tab:"flow", aiPath:null, sugg:null,
         timer:{running:false, start:0, acc:0}, phase:"setup", phaseAt:0,
-        probes:[blankProbe(), blankProbe(), blankProbe()],
+        checks:[blankProbe(), blankProbe(), blankProbe()],
         advice:null, armedNext:false, modeChosen:false };
 }
 reset(false);
@@ -265,15 +265,15 @@ function verdict(){
   if(S.probes.some(p => p.ai === "no"))
     return {k:"doubt", h:"Doubt", t:"Their account doesn't fit the declared AI path. Write down what they said under Evidence in Notion. Maro follows up."};
   if(!a.result || !b.result)
-    return {k:"pending", h:"No outcome yet", t:"Mark probe 1 and probe 2 as clear or unclear."};
+    return {k:"pending", h:"No outcome yet", t:"Mark check 1 and check 2 as clear or unclear."};
   const weak = p => p.result==="unclear" || p.ai==="unsure";
   const unclear = [a,b].filter(weak).length;
-  if(unclear === 0) return {k:"pass", h:"Pass", t:"Two clear probes."};
-  if(unclear === 2) return {k:"doubt", h:"Doubt", t:"Both probes were unclear or uncertain. Write down where they got stuck under Evidence in Notion. Maro follows up."};
-  if(!c.result) return {k:"third", h:"Do a third probe", t:"One probe was unclear, or you weren't sure how the code came about. Pick a different file, ideally from another assignment."};
+  if(unclear === 0) return {k:"pass", h:"Pass", t:"Two clear checks."};
+  if(unclear === 2) return {k:"doubt", h:"Doubt", t:"Both checks were unclear or uncertain. Write down where they got stuck under Evidence in Notion. Maro follows up."};
+  if(!c.result) return {k:"third", h:"Do a third check", t:"One check was unclear, or you weren't sure how the code came about. Pick a different file, ideally from another assignment."};
   return !weak(c)
-    ? {k:"pass", h:"Pass", t:"The third probe was clear."}
-    : {k:"doubt", h:"Doubt", t:"Still unclear after the third probe. Write down where they got stuck under Evidence in Notion. Maro follows up."};
+    ? {k:"pass", h:"Pass", t:"The third check was clear."}
+    : {k:"doubt", h:"Doubt", t:"Still unclear after the third check. Write down where they got stuck under Evidence in Notion. Maro follows up."};
 }
 
 /* ---------- helpers ---------- */
@@ -356,7 +356,7 @@ function probeHTML(i){
   const p = S.probes[i], mode = MODES[S.mode];
   let title, sub, deckRow = "";
   if(i===0){
-    title = mode.p1==="TUTORIAL" ? "Probe 1: tutorial package" : "Probe 1: foundation assignment";
+    title = mode.p1==="TUTORIAL" ? "Check 1: tutorial package" : "Check 1: foundation assignment";
     sub = mode.p1==="TUTORIAL" ? "Tutorial project." : "Stay in the code editor. Ask what Play would show instead of running it.";
     if(mode.p1==="A"){
       deckRow = `<div class="row"><span class="lab">Assignment</span>${ADECKS.map(k =>
@@ -365,12 +365,12 @@ function probeHTML(i){
         <p class="hint">Suggestions favour A4–A6. If the Notion row points somewhere else, go with that.</p>`;
     }
   } else if(i===1){
-    title = S.mode==="bt"||S.mode==="bs" ? "Probe 2: Final Project" : "Probe 2: XR Development Project";
-    sub = "Work in progress. Probe what exists so far, finished or not. Code editor only.";
+    title = S.mode==="bt"||S.mode==="bs" ? "Check 2: Final Project" : "Check 2: XR Development Project";
+    sub = "Work in progress. Check what exists so far, finished or not. Code editor only.";
     if(S.mode==="bt") sub += " Include a Trace into the teammate's code it connects to.";
   } else {
-    title = "Probe 3: a different file";
-    sub = "Pick a file you haven't probed yet, ideally from another assignment.";
+    title = "Check 3: a different file";
+    sub = "Pick a file you haven't checked yet, ideally from another assignment.";
     const decks = (S.mode==="mm" ? ["TUTORIAL"] : ADECKS).concat([mode.p2]);
     deckRow = `<div class="row"><span class="lab">Deck</span>${decks.map(k =>
       `<button class="chip" data-act="pick" data-p="2" data-v="${k}" aria-pressed="${p.deck===k}">${deckLabel(k)}</button>`).join("")}</div>`;
@@ -395,7 +395,7 @@ function probeHTML(i){
       <button class="chip res-clear" data-act="ai" data-p="${i}" data-v="yes" aria-pressed="${p.ai==="yes"}">Fits their AI path</button>
       <button class="chip res-doubt" data-act="ai" data-p="${i}" data-v="no" aria-pressed="${p.ai==="no"}">Doesn't fit</button>
       <button class="chip res-unclear" data-act="ai" data-p="${i}" data-v="unsure" aria-pressed="${p.ai==="unsure"}">Not sure</button></div>
-    <div class="row"><span class="lab">Script</span><input type="text" data-in="script" data-p="${i}" value="${esc(p.script)}" placeholder="e.g. Chaser.cs" aria-label="Script probed"></div>
+    <div class="row"><span class="lab">Script</span><input type="text" data-in="script" data-p="${i}" value="${esc(p.script)}" placeholder="e.g. Chaser.cs" aria-label="Script checked"></div>
     `;
   const phase = ["p1","p2","p3"][i];
   return `<section class="step" data-phase="${phase}"><div class="step-h"><h2>${title}</h2><span class="nowtag" hidden>now</span></div>
@@ -412,7 +412,7 @@ function copyText(i){
 }
 function notesText(){
   const lines = [];
-  S.probes.forEach((p,i) => { const t = copyText(i); if(t) lines.push("P"+(i+1)+": "+t); });
+  S.probes.forEach((p,i) => { const t = copyText(i); if(t) lines.push("Check "+(i+1)+": "+t); });
   if(!lines.length) return "";
   const v = verdict();
   lines.push("Suggested: "+(v.k==="pending" ? "not complete" : v.h));
@@ -424,10 +424,10 @@ function notesHTML(){
   return `<div class="copy"><button class="btn small" data-act="copynotes">Copy for “Check notes”</button></div><pre class="notes" id="notes">${esc(t)}</pre>`;
 }
 function aiHint(){
-  const no = `<b>No-AI:</b> you should hear how they wrote it: docs, tutorials, what went wrong. Code that looks generated with no story behind it gets a third probe.`;
+  const no = `<b>No-AI:</b> you should hear how they wrote it: docs, tutorials, what went wrong. Code that looks generated with no story behind it gets a third check.`;
   const yes = `<b>AI-Assisted:</b> you should hear which parts came from AI and what they changed or fixed. Predicting and changing still count the same.`;
-  if(!S.aiPath) return `<div class="ai"><p>Ask in every probe: <i>“How did this code come about?”</i></p><p>Tick their AI path from the Notion row to see what to listen for.</p></div>`;
-  return `<div class="ai"><p>Ask in every probe: <i>“How did this code come about?”</i></p><p>${S.aiPath==="noai" ? no : yes}</p><p>If it doesn't fit their declared path, note what they said and mark Doubt.</p></div>`;
+  if(!S.aiPath) return `<div class="ai"><p>Ask in every check: <i>“How did this code come about?”</i></p><p>Tick their AI path from the Notion row to see what to listen for.</p></div>`;
+  return `<div class="ai"><p>Ask in every check: <i>“How did this code come about?”</i></p><p>${S.aiPath==="noai" ? no : yes}</p><p>If it doesn't fit their declared path, note what they said and mark Doubt.</p></div>`;
 }
 function renderFlow(){
   const mode = MODES[S.mode], v = verdict(), p3 = v.k==="third" || S.probes[2].deck || S.probes[2].result;
@@ -444,7 +444,7 @@ function renderFlow(){
       <button class="chip" data-act="aipath" data-v="noai" aria-pressed="${S.aiPath==="noai"}">No-AI</button>
       <button class="chip" data-act="aipath" data-v="ai" aria-pressed="${S.aiPath==="ai"}">AI-Assisted</button></div>
     ${aiHint()}
-    <div class="cycle" aria-label="Probe cycle">${STEPS.map((s,i)=>`<span><b>${s}</b>${["","",""," (not dictated)",""][i]}</span>`).join("")}</div>
+    <div class="cycle" aria-label="Check cycle">${STEPS.map((s,i)=>`<span><b>${s}</b>${["","",""," (not dictated)",""][i]}</span>`).join("")}</div>
     <p class="hint">No AI during the interview. Undo each change afterwards (discard in GitHub Desktop).</p>
   </section>
   ${probeHTML(0)}
@@ -478,17 +478,17 @@ function renderDeck(k){
   const target = S.probes.findIndex((p,i) => !p.card && (i<2 || verdict().k==="third"));
   const btns = c => {
     const allowed = [0,1,2].filter(i => i===2 || (i===0 ? (MODES[S.mode].p1==="A" ? k.startsWith("A") : k===MODES[S.mode].p1) : k===MODES[S.mode].p2));
-    return `<div class="card-actions">${allowed.map(i=>`<button class="btn small" data-act="use" data-p="${i}" data-v="${c.id}">Use for probe ${i+1}</button>`).join("")}</div>`;
+    return `<div class="card-actions">${allowed.map(i=>`<button class="btn small" data-act="use" data-p="${i}" data-v="${c.id}">Use for check ${i+1}</button>`).join("")}</div>`;
   };
   return `<h2 class="deck-h">${esc(d.title)}</h2><p class="deck-sub">${esc(d.files)}. Pick any card, or let the interview tab deal one.</p>
-    <div class="legend"><span><span class="tag move">Move</span> type of change</span><span><span class="tag given">Given in brief/template</span> probe understanding</span></div>
+    <div class="legend"><span><span class="tag move">Move</span> type of change</span><span><span class="tag given">Given in brief/template</span> check understanding</span></div>
     ${cards.map(c => cardHTML(k, c, {actions:btns(c)})).join("")}`;
 }
 
 /* ---------- render: guide ---------- */
 function renderGuide(){
   return `<div class="guide">
-  <h2>The probe cycle, twice</h2>
+  <h2>The check cycle, twice</h2>
   <table><thead><tr><th>Step</th><th>You say</th><th>Watch for</th></tr></thead><tbody>
   <tr><td>Locate</td><td>Name a behaviour, not a file: “Show me where…”</td><td>Goes straight there, or searches file names</td></tr>
   <tr><td>Explain</td><td>“Walk me through this in your own words.” One minute.</td><td>Talks about the effect in the game, or reads code aloud</td></tr>
@@ -496,7 +496,7 @@ function renderGuide(){
   <tr><td>Change</td><td>They type it, you don't dictate. Then they say what Play would show. No need to run it.</td><td>Types it without syntax being dictated</td></tr>
   <tr><td>Reconcile</td><td>If it differs: “Why did that happen?”</td><td>Authors usually work it out within a minute</td></tr>
   </tbody></table>
-  <p>Everything happens in the code editor. Inspector and scene setup aren't part of the check. You pick the code, not them. Skip template code and go for the TODO parts and anything they added. A script that's much more polished than the rest is a good second probe.</p>
+  <p>Everything happens in the code editor. Inspector and scene setup aren't part of the check. You pick the code, not them. Skip template code and go for the TODO parts and anything they added. A script that's much more polished than the rest is a good second check.</p>
 
   <h2>Reading the signals</h2>
   <table><thead><tr><th>Clear</th><th>Unclear</th></tr></thead><tbody>
@@ -511,18 +511,18 @@ function renderGuide(){
 
   <h2>Decision rule</h2>
   <ul>
-  <li>Two clear probes: <b>Pass</b>.</li>
-  <li>One unclear: a third probe on a different file. Clear: Pass. Still unclear: <b>Doubt</b>.</li>
+  <li>Two clear checks: <b>Pass</b>.</li>
+  <li>One unclear: a third check on a different file. Clear: Pass. Still unclear: <b>Doubt</b>.</li>
   <li>Their account doesn't fit the declared AI path: <b>Doubt</b>.</li>
   <li>Doubt isn't a fail. It means: write down what you saw under Evidence, so Maro has something concrete to follow up on. TAs never mark Fail.</li>
-  <li>Don't argue it out or hint that something is wrong. Move on to the next probe.</li>
+  <li>Don't argue it out or hint that something is wrong. Move on to the next check.</li>
   </ul>
 
   <h2>When something goes wrong</h2>
   <ul>
-  <li><b>Repo not cloned:</b> open the code in GitLab's web view and probe there.</li>
+  <li><b>Repo not cloned:</b> open the code in GitLab's web view and check there.</li>
   <li><b>No laptop or an empty battery:</b> the same, on your laptop.</li>
-  <li><b>Little project code so far:</b> that's normal, it's a work-in-progress check. Probe the newest code they wrote, even if it doesn't work yet.</li>
+  <li><b>Little project code so far:</b> that's normal, it's a work-in-progress check. Check the newest code they wrote, even if it doesn't work yet.</li>
   <li><b>Repo not shared with the course group:</b> note it under Flag for Maro. They come back on Wed 16:25.</li>
   </ul>
 
@@ -539,9 +539,9 @@ function renderGuide(){
   <h2>In the room</h2>
   <ul>
   <li>Write notes during the slot; there is no separate note time.</li>
-  <li>Team members: one probe in the sub-system, including a Trace into the teammate's code. Disputed ownership: <code>git log --author</code>.</li>
-  <li>Masters on the Mentorship Path: probe 1 on the tutorial package.</li>
-  <li>A third probe takes time from the status part.</li>
+  <li>Team members: one check in the sub-system, including a Trace into the teammate's code. Disputed ownership: <code>git log --author</code>.</li>
+  <li>Masters on the Mentorship Path: check 1 on the tutorial package.</li>
+  <li>A third check takes time from the status part.</li>
   <li>Know them personally? Ask another TA to take over.</li>
   </ul>
   </div>`;
@@ -572,7 +572,7 @@ document.addEventListener("click", e => {
   if(a !== "next" && S.armedNext){ S.armedNext = false; }
   switch(a){
     case "mode": S.mode = v; S.modeChosen = true; store.set("crg-mode", v); S.advice = null;
-      // reset probe decks that no longer fit
+      // reset check decks that no longer fit
       S.probes.forEach(p => { if(p.card && !cardsFor(p.deck).some(c=>c.id===p.card)) Object.assign(p, blankProbe()); });
       break;
     case "tab": S.tab = v; window.scrollTo(0,0); break;
