@@ -254,7 +254,7 @@ window.DECKS = {
 
   PROJECT: {
     title: "Final Project (Bachelor)",
-    files: "IMDEV sub-system or stand-alone XR demo",
+    files: "IMDEV sub-system or stand-alone XR demo, work in progress",
     cards: [
       { id: "p-1", move: "remove", source: "own",
         locate: "Where does your sub-system start doing its work?",
@@ -301,7 +301,7 @@ window.DECKS = {
 
   MASTER: {
     title: "XR Development Project (Master)",
-    files: "prototype · conditions · logging",
+    files: "prototype in progress · conditions · logging",
     cards: [
       { id: "m-1", move: "tweak", source: "own",
         locate: "Where is the experimental condition switched?",

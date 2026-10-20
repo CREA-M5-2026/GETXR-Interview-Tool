@@ -130,6 +130,7 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
 .hint{font-size:13px;color:var(--muted);margin:6px 0 0}
 .ai{font-size:13.5px;margin:6px 0 0;padding:8px 10px;border-radius:6px;background:var(--sunk)}
 .ai b{font-weight:600}
+.notes{font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:6px 0 0;white-space:pre-wrap;color:var(--fg)}
 .typ{display:block;margin-top:4px;font-size:12.5px;color:var(--muted)}
 .tips{margin:4px 0 6px;padding:8px 10px 8px 28px;background:var(--sunk);border-radius:6px;font-size:14px}
 .tips li{margin:3px 0}
@@ -354,7 +355,7 @@ function probeHTML(i){
     }
   } else if(i===1){
     title = S.mode==="bt"||S.mode==="bs" ? "Probe 2: Final Project" : "Probe 2: XR Development Project";
-    sub = "Code editor only, like probe 1.";
+    sub = "Work in progress. Probe what exists so far, finished or not. Code editor only.";
     if(S.mode==="bt") sub += " Include a Trace into the teammate's code it connects to.";
   } else {
     title = "Probe 3: a different file";
@@ -381,7 +382,7 @@ function probeHTML(i){
       <button class="chip res-doubt" data-act="ai" data-p="${i}" data-v="no" aria-pressed="${p.ai==="no"}">Doesn't match</button>
       <button class="chip res-unclear" data-act="ai" data-p="${i}" data-v="unsure" aria-pressed="${p.ai==="unsure"}">Unsure</button></div>
     <div class="row"><span class="lab">Script</span><input type="text" data-in="script" data-p="${i}" value="${esc(p.script)}" placeholder="e.g. Chaser.cs" aria-label="Script probed"></div>
-    ${copyHTML(i)}`;
+    `;
   const phase = ["p1","p2","p3"][i];
   return `<section class="step" data-phase="${phase}"><div class="step-h"><h2>${title}</h2><span class="nowtag" hidden>now</span></div>
     <p class="note">${sub}</p>${deckRow}${body}${res}</section>`;
@@ -395,10 +396,18 @@ function copyText(i){
   parts.push("AI: "+(p.ai==="yes"?"matches":p.ai==="no"?"doesn't match":p.ai==="unsure"?"unsure":"?"));
   return parts.join(" · ");
 }
-function copyHTML(i){
-  const t = copyText(i);
+function notesText(){
+  const lines = [];
+  S.probes.forEach((p,i) => { const t = copyText(i); if(t) lines.push("P"+(i+1)+": "+t); });
+  if(!lines.length) return "";
+  const v = verdict();
+  lines.push("Suggested: "+(v.k==="pending" ? "not complete" : v.h));
+  return lines.join("\n");
+}
+function notesHTML(){
+  const t = notesText();
   if(!t) return "";
-  return `<div class="copy"><button class="btn small" data-act="copy" data-p="${i}">Copy for “Probe ${i+1} notes”</button><output id="copy-${i}">${esc(t)}</output></div>`;
+  return `<div class="copy"><button class="btn small" data-act="copynotes">Copy for “Check notes”</button></div><pre class="notes" id="notes">${esc(t)}</pre>`;
 }
 function aiHint(){
   const no = `<b>No-AI:</b> you should hear how they wrote it: docs, tutorials, what went wrong. Code that looks generated with no story behind it gets a third probe.`;
@@ -427,7 +436,8 @@ function renderFlow(){
   ${probeHTML(1)}
   ${p3 ? probeHTML(2) : ""}
   <div class="verdict ${v.k}"><h2>${v.h}</h2><p class="note" style="color:inherit">${v.t}</p>
-    <p class="hint">Don't share the outcome in the room. Record it in Notion.</p></div>
+    ${notesHTML()}
+    <p class="hint">In Notion: paste into Check notes, pick the Outcome${v.k==="doubt"?", write the Evidence":""}. Don't share the outcome in the room.</p></div>
   ${mode.status ? statusHTML(team) : `<section class="step" data-phase="handover"><div class="step-h"><h2>Hand over</h2></div><p class="note">Check done. Send them to Maro's table for the 10-minute talk.</p></section>`}
   `;
 }
@@ -490,6 +500,14 @@ function renderGuide(){
   <li>Their account doesn't fit the declared AI path: <b>Doubt</b>.</li>
   <li>Doubt isn't a fail. It means: write down what you saw under Evidence, so Maro has something concrete to follow up on. TAs never mark Fail.</li>
   <li>Don't argue it out or hint that something is wrong. Move on to the next probe.</li>
+  </ul>
+
+  <h2>When something goes wrong</h2>
+  <ul>
+  <li><b>Repo not cloned:</b> open the code in GitLab's web view and probe there.</li>
+  <li><b>No laptop or an empty battery:</b> the same, on your laptop.</li>
+  <li><b>Little project code so far:</b> that's normal, it's a work-in-progress check. Probe the newest code they wrote, even if it doesn't work yet.</li>
+  <li><b>Repo not shared with the course group:</b> note it under Flag for Maro. They come back on Wed 16:25.</li>
   </ul>
 
   <h2>Change moves</h2>
@@ -564,7 +582,7 @@ document.addEventListener("click", e => {
     case "ai": { const p = S.probes[i]; p.ai = p.ai===v ? null : v; break; }
     case "aipath": S.aiPath = S.aiPath===v ? null : v; break;
     case "advice": S.advice = S.advice===v ? null : v; break;
-    case "copy": b.setAttribute("data-copying",""); copyOut(copyText(i)); return;
+    case "copynotes": b.setAttribute("data-copying",""); copyOut(notesText()); return;
     case "copyadvice": { const t = window.ADVICE.find(x => x.id === S.advice);
       if(t){ b.setAttribute("data-copying",""); copyOut(t.tips.join(" ").replace(/`/g,"")); } return; }
   }
@@ -573,11 +591,8 @@ document.addEventListener("click", e => {
 document.addEventListener("input", e => {
   const t = e.target; if(t.dataset.in !== "script") return;
   S.probes[Number(t.dataset.p)].script = t.value;
-  const o = document.getElementById("copy-"+t.dataset.p);
-  if(o) o.textContent = copyText(Number(t.dataset.p));
-  else { // first time a copy line becomes available: re-render just that probe's copy row
-    const row = t.closest(".row"); if(row && copyText(Number(t.dataset.p))) row.insertAdjacentHTML("afterend", copyHTML(Number(t.dataset.p)));
-  }
+  const o = document.getElementById("notes");
+  if(o) o.textContent = notesText();
 });
 setInterval(() => { if(S.timer.running) renderClock(); }, 500);
 render();
