@@ -2,8 +2,8 @@
 // Edit freely: each card has an id (keep it unique), a move, a source, and three texts.
 //   move:   tweak | remove | move | extend | trace | why-not
 //   source: own   = code the student had to write themselves
-//           given = code or setup that came with the brief or template (probe understanding, not authorship)
-//           editor = Inspector / asset setup rather than code
+//           given = code that came with the brief or template (probe understanding, not authorship)
+// Only code-editor cards: nothing that needs Unity open (Inspector, Hierarchy, Play Mode).
 //   locate: the behaviour the TA names ("show me where...")
 //   change: what the student changes (assignments: typed in the editor, not run)
 //   expect: what should happen, for the TA only
@@ -38,14 +38,10 @@ window.DECKS = {
         locate: "Show me where the forward/back value is set.",
         change: "Make walking backwards (S) half as fast as forwards.",
         expect: "A factor on negative z only. Watch the order: normalize first, then scale, or diagonals change too." },
-      { id: "a1-7", move: "trace", source: "editor",
-        locate: "Why does the camera follow the player? There's no camera script.",
-        change: "Unparent Main Camera in the Hierarchy during Play.",
-        expect: "The camera stays where it was. Following came purely from parenting." },
       { id: "a1-8", move: "why-not", source: "own",
         locate: "What does your code do when no key is pressed?",
         change: "Ask: what does normalizing a zero vector give?",
-        expect: "Unity returns (0, 0, 0), so there is no error. An author can reason it through or test it quickly." },
+        expect: "Unity returns (0, 0, 0), so there is no error. An author can reason it through." },
       { id: "a1-9", move: "extend", source: "own",
         locate: "Where are keys mapped to directions?",
         change: "Add Q and E to move down and up.",
@@ -69,10 +65,6 @@ window.DECKS = {
         locate: "Show me the on/off toggle.",
         change: "Let the timer keep counting while the spawner is off.",
         expect: "Switching it back on spawns immediately (one coin, or several if the timer subtracts the interval in a loop)." },
-      { id: "a2-4", move: "tweak", source: "editor",
-        locate: "How does a coin know the player touched it?",
-        change: "Untick Is Trigger on the coin's collider.",
-        expect: "`OnTriggerEnter` no longer fires and the score doesn't change. Whether the player bumps into it or passes through depends on how it moves." },
       { id: "a2-5", move: "remove", source: "own",
         locate: "Where does the coin check what touched it?",
         change: "Remove the player check (tag or component).",
@@ -102,7 +94,7 @@ window.DECKS = {
 
   A3: {
     title: "A3 Control & Interaction",
-    files: ".inputactions asset · player controller · power-up · hazard",
+    files: "player controller · power-up · hazard scripts",
     cards: [
       { id: "a3-1", move: "remove", source: "own",
         locate: "Show me where looking up and down is limited.",
@@ -132,14 +124,6 @@ window.DECKS = {
         locate: "Where is the aimed pickup detected?",
         change: "Set the raycast range to `0.5`.",
         expect: "You must stand almost against it. A power-up out of reach can no longer be activated." },
-      { id: "a3-8", move: "extend", source: "editor",
-        locate: "Where are the Move bindings?",
-        change: "Add a gamepad left-stick binding to Move.",
-        expect: "No code change needed. That is the point of the Input Actions asset." },
-      { id: "a3-9", move: "tweak", source: "editor",
-        locate: "What decides which slopes are walkable?",
-        change: "Set the CharacterController's Slope Limit to 10.",
-        expect: "Green slopes become unwalkable. Low stairs may still work through Step Offset." },
       { id: "a3-10", move: "trace", source: "own",
         locate: "Touch the hazard: which code runs, in what order?",
         change: "Just trace it, no changes.",
@@ -175,14 +159,6 @@ window.DECKS = {
         locate: "Show me how an unreachable click is detected.",
         change: "Ask: which check did you use, and is the answer there in the same frame?",
         expect: "`SetDestination` bool, `pathStatus` (not immediate), `CalculatePath` (immediate) or `SamplePosition`. Ask which one they used, and why." },
-      { id: "a4-6", move: "tweak", source: "editor",
-        locate: "Which sounds are 3D?",
-        change: "Set the chaser's Spatial Blend to 1 with the default Min Distance.",
-        expect: "Barely audible: the listener is on the camera, about 20 units up." },
-      { id: "a4-7", move: "tweak", source: "editor",
-        locate: "How do the particle effects clean up?",
-        change: "Set the FX prefab's Stop Action to None.",
-        expect: "Finished effect objects pile up in the Hierarchy." },
       { id: "a4-8", move: "extend", source: "own",
         locate: "Where does the power-up change the speed?",
         change: "Also slow the chaser while the boost is active.",
@@ -200,7 +176,7 @@ window.DECKS = {
 
   A5: {
     title: "A5 Webcam Marker AR",
-    files: "Doggy script(s) · TreatAnchor.cs changes",
+    files: "Doggy script(s) · TreatAnchor.cs",
     cards: [
       { id: "a5-1", move: "remove", source: "own",
         locate: "What happens to Doggy when his card isn't seen?",
@@ -230,14 +206,6 @@ window.DECKS = {
         locate: "Where is the head turn limited?",
         change: "Remove the turn limit.",
         expect: "The head follows the treat into unnatural angles, even backwards." },
-      { id: "a5-8", move: "move", source: "given",
-        locate: "Where does the disappear effect live?",
-        change: "Move it onto Doggy himself.",
-        expect: "It no longer plays when the card is lost: a hidden object can't play an effect. The hint is in the brief." },
-      { id: "a5-9", move: "tweak", source: "own",
-        locate: "Where is the second dog's tag set?",
-        change: "Give the second dog ID 1 as well.",
-        expect: "Both dogs sit on the same card, overlapping. Card 2 does nothing." },
       { id: "a5-10", move: "extend", source: "own",
         locate: "Show me the jaw animation.",
         change: "Open the jaw wider the closer the treat is.",
@@ -251,16 +219,12 @@ window.DECKS = {
 
   A6: {
     title: "A6 VR Basics",
-    files: "PlacementGoal.cs · sockets and Interaction Layers",
+    files: "PlacementGoal.cs",
     cards: [
       { id: "a6-1", move: "remove", source: "own",
         locate: "Where does the script listen to the sockets?",
         change: "Remove the `selectExited` listener.",
         expect: "The count doesn't drop when an object is taken out, and the response doesn't close." },
-      { id: "a6-2", move: "extend", source: "editor",
-        locate: "Where does the total come from?",
-        change: "Add a third socket to the list, with no object for it.",
-        expect: "The display shows x/3 by itself. The goal can never complete." },
       { id: "a6-3", move: "move", source: "own",
         locate: "Where is the completion effect started?",
         change: "Move the `Play()` call into the 'complete' branch of `Update()`.",
@@ -273,10 +237,6 @@ window.DECKS = {
         locate: "Where does the response move?",
         change: "Make the opening speed 10× faster.",
         expect: "It opens almost instantly, so the 'about a second or longer' requirement fails." },
-      { id: "a6-6", move: "tweak", source: "editor",
-        locate: "What stops a socket accepting the wrong object?",
-        change: "Give two sockets the same Interaction Layer.",
-        expect: "Either object fits either socket. The counting still works." },
       { id: "a6-7", move: "trace", source: "own",
         locate: "Place an object: what runs, in what order?",
         change: "Just trace it, no changes.",
@@ -298,15 +258,15 @@ window.DECKS = {
     cards: [
       { id: "p-1", move: "remove", source: "own",
         locate: "Where does your sub-system start doing its work?",
-        change: "Disable that component in Play Mode. Ask first: what stops working?",
-        expect: "They can say what breaks before you press Play." },
+        change: "Comment out the call that starts it. What stops working?",
+        expect: "They can say what breaks in the game, and when you would notice." },
       { id: "p-2", move: "trace", source: "own", only: "team",
         locate: "Show me where your code meets a teammate's code.",
         change: "Trace it: what calls what, and what data is passed?",
         expect: "Concrete method or event names, and who owns each side. If ownership is disputed: `git log --author`." },
       { id: "p-3", move: "tweak", source: "own",
         locate: "Show me a value someone would tune.",
-        change: "Set it to 0, then to 10×.",
+        change: "Change it in the code to 0, then to 10×.",
         expect: "They predict both before running." },
       { id: "p-4", move: "tweak", source: "own",
         locate: "Where does your system decide that a state changes?",

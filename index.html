@@ -130,6 +130,7 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
 .hint{font-size:13px;color:var(--muted);margin:6px 0 0}
 .ai{font-size:13.5px;margin:6px 0 0;padding:8px 10px;border-radius:6px;background:var(--sunk)}
 .ai b{font-weight:600}
+.typ{display:block;margin-top:4px;font-size:12.5px;color:var(--muted)}
 .tips{margin:4px 0 6px;padding:8px 10px 8px 28px;background:var(--sunk);border-radius:6px;font-size:14px}
 .tips li{margin:3px 0}
 
@@ -193,11 +194,15 @@ const ADECKS = ["A1","A2","A3","A4","A5","A6"];
 const WEIGHTS = {A1:1, A2:1, A3:1.5, A4:2, A5:2, A6:2};
 const STEPS = ["Locate","Explain","Predict","Change","Reconcile"];
 const MOVES = {tweak:"Tweak", remove:"Remove", move:"Move it", extend:"Extend", trace:"Trace", "why-not":"Why not"};
-const SOURCES = {own:"Own code", given:"Given in brief/template", editor:"Editor setup"};
+const SOURCES = {own:"Own code", given:"Given in brief/template"};
+function needsThird(){ return verdict().k==="third" || !!S.probes[2].deck || !!S.probes[2].result; }
 function phasesFor(mode){
-  return MODES[mode].status
-    ? [{n:"Setup",e:1},{n:"Probe 1",e:6},{n:"Probe 2",e:12},{n:"Status",e:17}]
-    : [{n:"Setup",e:1},{n:"Probe 1",e:6},{n:"Probe 2",e:12}];
+  const third = needsThird(), st = MODES[mode].status;
+  const list = [{id:"setup",n:"Setup",len:1},{id:"p1",n:"Probe 1",len:5},{id:"p2",n:"Probe 2",len:6}];
+  if(third) list.push({id:"p3",n:"Probe 3",len:st?3:4});
+  if(st) list.push({id:"checkin",n:"Check-in",len:third?2:5});
+  let e = 0; list.forEach(p => { e += p.len; p.e = e; });
+  return list;
 }
 
 /* ---------- state ---------- */
@@ -206,7 +211,7 @@ let S;
 function reset(keepMode){
   const mode = keepMode && S ? S.mode : (store.get("crg-mode","bt"));
   S = { mode, tab:"flow", aiPath:null, sugg:null,
-        timer:{running:false, start:0, acc:0}, phase:0, phaseAt:0,
+        timer:{running:false, start:0, acc:0}, phase:"setup", phaseAt:0,
         probes:[blankProbe(), blankProbe(), blankProbe()],
         advice:null, armedNext:false };
 }
@@ -248,11 +253,12 @@ function verdict(){
     return {k:"doubt", h:"Doubt", t:"Their account doesn't fit the declared AI path. Write down what they said under Evidence in Notion. Maro follows up."};
   if(!a.result || !b.result)
     return {k:"pending", h:"No outcome yet", t:"Mark probe 1 and probe 2 as clear or unclear."};
-  const unclear = [a,b].filter(p=>p.result==="unclear").length;
+  const weak = p => p.result==="unclear" || p.ai==="unsure";
+  const unclear = [a,b].filter(weak).length;
   if(unclear === 0) return {k:"pass", h:"Pass", t:"Two clear probes."};
-  if(unclear === 2) return {k:"doubt", h:"Doubt", t:"Both probes were unclear. Write down where they got stuck under Evidence in Notion. Maro follows up."};
-  if(!c.result) return {k:"third", h:"Do a third probe", t:"One probe was unclear. Pick a different file, ideally from another assignment."};
-  return c.result === "clear"
+  if(unclear === 2) return {k:"doubt", h:"Doubt", t:"Both probes were unclear or uncertain. Write down where they got stuck under Evidence in Notion. Maro follows up."};
+  if(!c.result) return {k:"third", h:"Do a third probe", t:"One probe was unclear, or you weren't sure how the code came about. Pick a different file, ideally from another assignment."};
+  return !weak(c)
     ? {k:"pass", h:"Pass", t:"The third probe was clear."}
     : {k:"doubt", h:"Doubt", t:"Still unclear after the third probe. Write down where they got stuck under Evidence in Notion. Maro follows up."};
 }
@@ -283,37 +289,34 @@ function renderChrome(){
   document.getElementById("tabs").innerHTML = tabs.map(([k,l]) =>
     `<button role="tab" data-act="tab" data-v="${k}" aria-selected="${S.tab===k}">${esc(l)}</button>`).join("");
   const nb = document.getElementById("nextBtn");
-  nb.textContent = S.armedNext ? "Click again to clear" : "Next student";
+  nb.textContent = S.armedNext ? "Pasted into Notion? Click again" : "Next student";
   nb.classList.toggle("armed", S.armedNext);
   renderClock();
 }
 function renderClock(){
   const ph = phasesFor(S.mode), total = ph[ph.length-1].e*60000, el = elapsed();
-  if(S.phase >= ph.length) S.phase = ph.length-1;
+  let idx = ph.findIndex(p => p.id === S.phase);
+  if(idx < 0){ idx = ph.length-1; S.phase = ph[idx].id; }
   const t = document.getElementById("time");
   t.textContent = fmt(el);
   t.classList.toggle("over", el > total);
   t.classList.toggle("warn", el <= total && el > total-60000);
   document.getElementById("startBtn").textContent = S.timer.running ? "Pause" : (el>0 ? "Resume" : "Start");
-  const nb = document.getElementById("phaseBtn");
-  nb.disabled = S.phase >= ph.length-1; nb.textContent = "Next phase";
-  let prev = 0;
+  document.getElementById("phaseBtn").disabled = idx >= ph.length-1;
   const inPhase = el - S.phaseAt;
-  const html = ph.map((p,i) => {
-    const len = (p.e-prev)*60000, w = p.e-prev; prev = p.e;
-    const now = i===S.phase, done = i<S.phase;
+  document.getElementById("phases").innerHTML = ph.map((p,i) => {
+    const len = p.len*60000, now = i===idx, done = i<idx;
     const pct = done ? 100 : now ? Math.min(100, inPhase/len*100) : 0;
     const over = now && inPhase > len;
-    return `<button class="ph${now?" now":""}${done?" done":""}${over?" over":""}" data-act="phase" data-v="${i}" style="--w:${w};--p:${pct}%" aria-pressed="${now}"><i></i><span>${p.n} (${w} min)</span></button>`;
+    return `<button class="ph${now?" now":""}${done?" done":""}${over?" over":""}" data-act="phase" data-v="${p.id}" style="--w:${p.len};--p:${pct}%" aria-pressed="${now}"><i></i><span>${p.n} (${p.len} min)</span></button>`;
   }).join("");
-  document.getElementById("phases").innerHTML = html;
-  const cur = ph[S.phase], curLen = (cur.e - (S.phase ? ph[S.phase-1].e : 0))*60000, left = curLen - inPhase;
+  const cur = ph[idx], left = cur.len*60000 - inPhase;
   const hint = document.getElementById("phint");
   if(el === 0){ hint.textContent = ""; hint.className = "phint"; }
   else if(left > 0){ hint.textContent = cur.n + ": " + fmt(left+999) + " left"; hint.className = "phint"; }
   else { hint.textContent = cur.n + ": time to move on"; hint.className = "phint move"; }
   document.querySelectorAll(".step[data-phase]").forEach(n => {
-    const on = Number(n.dataset.phase) === S.phase && el > 0;
+    const on = n.dataset.phase === S.phase && el > 0;
     n.classList.toggle("now", on);
     const tag = n.querySelector(".nowtag"); if(tag) tag.hidden = !on;
   });
@@ -324,8 +327,8 @@ function cardHTML(deckKey, c, opts){
   opts = opts || {};
   const src = c.source==="given" ? "given" : c.source==="editor" ? "editor" : "";
   const exp = opts.probe !== undefined
-    ? `<div class="exp"><button data-act="reveal" data-p="${opts.probe}" aria-expanded="${!!opts.reveal}">${opts.reveal?"Hide expected result":"Show expected result"}</button>${opts.reveal?`<p>${rich(c.expect)}</p>`:""}</div>`
-    : `<details class="exp"><summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--accent)">Expected result</summary><p>${rich(c.expect)}</p></details>`;
+    ? `<div class="exp"><button data-act="reveal" data-p="${opts.probe}" aria-expanded="${!!opts.reveal}">${opts.reveal?"Hide expected result":"Show expected result"}</button>${opts.reveal?`<p>${rich(c.expect)}<span class="typ">Typical result. Their code may behave differently, and that's what Reconcile is for.</span></p>`:""}</div>`
+    : `<details class="exp"><summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--accent)">Expected result</summary><p>${rich(c.expect)}<span class="typ">Typical result. Their code may behave differently.</span></p></details>`;
   return `<div class="card">
     <div class="meta"><span class="tag move">${MOVES[c.move]}</span>${src?`<span class="tag ${src}">${SOURCES[c.source]}</span>`:""}<span class="deckname">${esc(D[deckKey].title)}</span></div>
     <p class="say">${rich(c.locate)}</p>
@@ -351,7 +354,7 @@ function probeHTML(i){
     }
   } else if(i===1){
     title = S.mode==="bt"||S.mode==="bs" ? "Probe 2: Final Project" : "Probe 2: XR Development Project";
-    sub = "Run it in Unity.";
+    sub = "Code editor only, like probe 1.";
     if(S.mode==="bt") sub += " Include a Trace into the teammate's code it connects to.";
   } else {
     title = "Probe 3: a different file";
@@ -379,7 +382,7 @@ function probeHTML(i){
       <button class="chip res-unclear" data-act="ai" data-p="${i}" data-v="unsure" aria-pressed="${p.ai==="unsure"}">Unsure</button></div>
     <div class="row"><span class="lab">Script</span><input type="text" data-in="script" data-p="${i}" value="${esc(p.script)}" placeholder="e.g. Chaser.cs" aria-label="Script probed"></div>
     ${copyHTML(i)}`;
-  const phase = i===0?1 : i===1?2 : -1;
+  const phase = ["p1","p2","p3"][i];
   return `<section class="step" data-phase="${phase}"><div class="step-h"><h2>${title}</h2><span class="nowtag" hidden>now</span></div>
     <p class="note">${sub}</p>${deckRow}${body}${res}</section>`;
 }
@@ -407,9 +410,9 @@ function renderFlow(){
   const mode = MODES[S.mode], v = verdict(), p3 = v.k==="third" || S.probes[2].deck || S.probes[2].result;
   const team = S.mode==="bt";
   return `
-  <section class="step" data-phase="0"><div class="step-h"><h2>Setup</h2><span class="t">1 min</span><span class="nowtag" hidden>now</span></div>
+  <section class="step" data-phase="setup"><div class="step-h"><h2>Setup</h2><span class="t">1 min</span><span class="nowtag" hidden>now</span></div>
     <ul class="checks">
-      <li>${S.mode==="mm" ? "Tutorial project and XR Development Project open" : S.mode==="m" ? "XR Development Project open in Unity, repositories cloned" : "Final Project open in Unity, A1–A6 repositories cloned"}</li>
+      <li>${S.mode==="mm" ? "Tutorial project and XR Development Project" : S.mode==="m" ? "XR Development Project and A1–A6" : "Final Project and A1–A6"} open in the code editor. Unity isn't needed.</li>
       <li>GitLab commit list visible</li>
       <li>Notion row open: team, pointers, AI path</li>
     </ul>
@@ -425,20 +428,20 @@ function renderFlow(){
   ${p3 ? probeHTML(2) : ""}
   <div class="verdict ${v.k}"><h2>${v.h}</h2><p class="note" style="color:inherit">${v.t}</p>
     <p class="hint">Don't share the outcome in the room. Record it in Notion.</p></div>
-  ${mode.status ? statusHTML(team) : `<section class="step"><div class="step-h"><h2>Hand over</h2></div><p class="note">Check done. Send them to Maro's table for the 10-minute talk.</p></section>`}
+  ${mode.status ? statusHTML(team) : `<section class="step" data-phase="handover"><div class="step-h"><h2>Hand over</h2></div><p class="note">Check done. Send them to Maro's table for the 10-minute talk.</p></section>`}
   `;
 }
 function statusHTML(team){
   const only = team ? "team" : "solo";
   const topics = window.ADVICE.filter(t => !t.only || t.only === only);
   const cur = topics.find(t => t.id === S.advice);
-  return `<section class="step" data-phase="3"><div class="step-h"><h2>Project check-in</h2><span class="t">5 min</span><span class="nowtag" hidden>now</span></div>
+  return `<section class="step" data-phase="checkin"><div class="step-h"><h2>Project check-in</h2><span class="t">5 min</span><span class="nowtag" hidden>now</span></div>
     <p class="note">They bring two points. Listen, ask what they've tried, then help them find one concrete next step.</p>
     <p class="quote">1. What's your current challenge in your own ${team?"sub-system":"project"}?</p>
     <p class="quote">2. ${team ? "Where does your code meet a teammate's code, and what's unclear or not agreed yet?" : "What's still open in the XR part of your demo?"}</p>
     <div class="row"><span class="lab">Help with</span>${topics.map(t =>
       `<button class="chip" data-act="advice" data-v="${t.id}" aria-pressed="${S.advice===t.id}">${esc(t.label)}</button>`).join("")}</div>
-    ${cur ? `<ul class="tips">${cur.tips.map(x=>`<li>${rich(x)}</li>`).join("")}</ul>` : ""}
+    ${cur ? `<ul class="tips">${cur.tips.map(x=>`<li>${rich(x)}</li>`).join("")}</ul><div class="copy"><button class="btn small" data-act="copyadvice">Copy for “Advice given”</button></div>` : ""}
     <p class="hint">Offer what fits, in your own words. Note their two points and your advice in Notion; it goes to ${team?"their IMDEV team":"them directly"}. Not prepared? Ask both questions anyway and tick Unprepared.</p>
   </section>`;
 }
@@ -452,7 +455,7 @@ function renderDeck(k){
     return `<div class="card-actions">${allowed.map(i=>`<button class="btn small" data-act="use" data-p="${i}" data-v="${c.id}">Use for probe ${i+1}</button>`).join("")}</div>`;
   };
   return `<h2 class="deck-h">${esc(d.title)}</h2><p class="deck-sub">${esc(d.files)}. Pick any card, or let the interview tab deal one.</p>
-    <div class="legend"><span><span class="tag move">Move</span> type of change</span><span><span class="tag given">Given in brief/template</span> probe understanding</span><span><span class="tag editor">Editor setup</span> Inspector, not code</span></div>
+    <div class="legend"><span><span class="tag move">Move</span> type of change</span><span><span class="tag given">Given in brief/template</span> probe understanding</span></div>
     ${cards.map(c => cardHTML(k, c, {actions:btns(c)})).join("")}`;
 }
 
@@ -464,10 +467,10 @@ function renderGuide(){
   <tr><td>Locate</td><td>Name a behaviour, not a file: “Show me where…”</td><td>Goes straight there, or searches file names</td></tr>
   <tr><td>Explain</td><td>“Walk me through this in your own words.” One minute.</td><td>Talks about the effect in the game, or reads code aloud</td></tr>
   <tr><td>Predict</td><td>Propose the change. “Before we try it: what will happen?”</td><td>A concrete answer with a reason, or “it might break”</td></tr>
-  <tr><td>Change</td><td>They type it, you don't dictate. Assignments: say what Play would show. Project: run it.</td><td>Types it without syntax being dictated</td></tr>
+  <tr><td>Change</td><td>They type it, you don't dictate. Then they say what Play would show. No need to run it.</td><td>Types it without syntax being dictated</td></tr>
   <tr><td>Reconcile</td><td>If it differs: “Why did that happen?”</td><td>Authors usually work it out within a minute</td></tr>
   </tbody></table>
-  <p>You pick the code, not them. Skip template code and go for the TODO parts and anything they added. A script that's much more polished than the rest is a good second probe.</p>
+  <p>Everything happens in the code editor. Inspector and scene setup aren't part of the check. You pick the code, not them. Skip template code and go for the TODO parts and anything they added. A script that's much more polished than the rest is a good second probe.</p>
 
   <h2>Reading the signals</h2>
   <table><thead><tr><th>Clear</th><th>Unclear</th></tr></thead><tbody>
@@ -520,7 +523,7 @@ function render(){
 
 /* ---------- actions ---------- */
 function copyOut(text){
-  const done = ok => { const b = document.querySelector(`[data-act="copy"][data-copying]`); if(b){ b.textContent = ok?"Copied":"Select and copy the text"; b.removeAttribute("data-copying"); setTimeout(render, 1200);} };
+  const done = ok => { const b = document.querySelector(`[data-copying]`); if(b){ b.textContent = ok?"Copied":"Select and copy the text"; b.removeAttribute("data-copying"); setTimeout(render, 1200);} };
   const fallback = () => {
     const ta = document.createElement("textarea"); ta.value = text; ta.style.position="fixed"; ta.style.opacity="0";
     document.body.appendChild(ta); ta.select(); let ok=false; try{ ok = document.execCommand("copy"); }catch(e){}
@@ -539,10 +542,11 @@ document.addEventListener("click", e => {
       S.probes.forEach(p => { if(p.card && !cardsFor(p.deck).some(c=>c.id===p.card)) Object.assign(p, blankProbe()); });
       break;
     case "tab": S.tab = v; window.scrollTo(0,0); break;
-    case "nextphase": if(!S.timer.running){ S.timer.start = Date.now(); S.timer.running = true; }
-      S.phase = Math.min(S.phase+1, phasesFor(S.mode).length-1); S.phaseAt = elapsed(); break;
+    case "nextphase": { if(!S.timer.running){ S.timer.start = Date.now(); S.timer.running = true; }
+      const ph = phasesFor(S.mode), i = ph.findIndex(p => p.id === S.phase);
+      S.phase = ph[Math.min(i+1, ph.length-1)].id; S.phaseAt = elapsed(); break; }
     case "phase": if(!S.timer.running && elapsed()===0){ S.timer.start = Date.now(); S.timer.running = true; }
-      S.phase = Number(v); S.phaseAt = elapsed(); break;
+      S.phase = v; S.phaseAt = elapsed(); break;
     case "timer":
       if(S.timer.running){ S.timer.acc += Date.now()-S.timer.start; S.timer.running = false; }
       else { S.timer.start = Date.now(); S.timer.running = true; }
@@ -561,6 +565,8 @@ document.addEventListener("click", e => {
     case "aipath": S.aiPath = S.aiPath===v ? null : v; break;
     case "advice": S.advice = S.advice===v ? null : v; break;
     case "copy": b.setAttribute("data-copying",""); copyOut(copyText(i)); return;
+    case "copyadvice": { const t = window.ADVICE.find(x => x.id === S.advice);
+      if(t){ b.setAttribute("data-copying",""); copyOut(t.tips.join(" ").replace(/`/g,"")); } return; }
   }
   render();
 });
