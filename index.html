@@ -225,7 +225,7 @@ function reset(keepMode){
   const mode = keepMode && S ? S.mode : (store.get("crg-mode","bt"));
   S = { mode, tab:"flow", aiPath:null, sugg:null,
         timer:{running:false, start:0, acc:0}, phase:"setup", phaseAt:0,
-        checks:[blankProbe(), blankProbe(), blankProbe()],
+        probes:[blankProbe(), blankProbe(), blankProbe()],
         advice:null, armedNext:false, modeChosen:false };
 }
 reset(false);
