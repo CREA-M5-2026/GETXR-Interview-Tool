@@ -195,7 +195,7 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
   <div class="wrap">
     <div class="bar-row">
       <div class="modes" role="group" aria-label="Student type" id="modes"></div>
-      <button class="btn nextstu" data-act="next">Next student</button>
+      <button class="btn nextstu" data-act="next">Clear</button>
     </div>
     <div class="bar-row2">
       <div class="clock">
@@ -349,8 +349,8 @@ function renderChrome(){
     decks.map(t => tb([t[0], esc(t[1])])).join("");
   document.getElementById("helpBtn").setAttribute("aria-pressed", S.tab==="guide");
   document.querySelectorAll('[data-act="next"]').forEach(nb => {
-    nb.textContent = S.armedNext ? "Not copied. Clear?" : "Next student";
-    nb.title = S.armedNext ? "You haven't pressed Copy for Notion yet. Click again to clear anyway." : "";
+    nb.textContent = S.armedNext ? "Not copied. Clear anyway?" : "Clear";
+    nb.title = S.armedNext ? "You haven't pressed Copy for Notion yet. Click again to clear anyway." : "Clear the guide for the next student";
     nb.classList.toggle("armed", S.armedNext);
   });
   document.getElementById("modes").classList.toggle("need", !S.modeChosen);
@@ -539,7 +539,7 @@ function renderFlow(){
   ${S.modeChosen ? verdictHTML(v) : ""}
   ${!S.modeChosen ? "" : mode.status ? statusHTML(team) : `<section class="step" data-phase="handover"><div class="step-h"><h2>Hand over</h2></div><p class="note">Check done. Send them to Maro's table for the 10-minute talk.</p></section>`}
   ${S.modeChosen ? toNotionHTML() : ""}
-  <div class="endrow"><button class="btn" data-act="next">Next student</button></div>
+  <div class="endrow"><button class="btn" data-act="next">Clear</button></div>
   `;
 }
 function verdictHTML(v){
