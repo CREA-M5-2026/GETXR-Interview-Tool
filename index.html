@@ -426,8 +426,8 @@ function notesHTML(){
 function aiHint(){
   const no = `<b>No-AI:</b> you should hear how they wrote it: docs, tutorials, what went wrong. Code that looks generated with no story behind it gets a third check.`;
   const yes = `<b>AI-Assisted:</b> you should hear which parts came from AI and what they changed or fixed. Predicting and changing still count the same.`;
-  if(!S.aiPath) return `<div class="ai"><p>Ask in every check: <i>“How did this code come about?”</i></p><p>Tick their AI path from the Notion row to see what to listen for.</p></div>`;
-  return `<div class="ai"><p>Ask in every check: <i>“How did this code come about?”</i></p><p>${S.aiPath==="noai" ? no : yes}</p><p>If it doesn't fit their declared path, note what they said and mark Doubt.</p></div>`;
+  if(!S.aiPath) return `<div class="ai"><p>Ask in every check: <i>“How did you write this code?”</i></p><p>Tick their AI path from the Notion row to see what to listen for.</p></div>`;
+  return `<div class="ai"><p>Ask in every check: <i>“How did you write this code?”</i></p><p>${S.aiPath==="noai" ? no : yes}</p><p>If it doesn't fit their declared path, note what they said and mark Doubt.</p></div>`;
 }
 function renderFlow(){
   const mode = MODES[S.mode], v = verdict(), p3 = v.k==="third" || S.probes[2].deck || S.probes[2].result;
@@ -462,8 +462,8 @@ function statusHTML(team){
   const cur = topics.find(t => t.id === S.advice);
   return `<section class="step" data-phase="checkin"><div class="step-h"><h2>Project check-in</h2><span class="t">5 min</span><span class="nowtag" hidden>now</span></div>
     <p class="note">They bring two points. Listen, ask what they've tried, then help them find one concrete next step.</p>
-    <p class="quote">1. What's your current challenge in your own ${team?"sub-system":"project"}?</p>
-    <p class="quote">2. ${team ? "Where does your code meet a teammate's code, and what's unclear or not agreed yet?" : "What's still open in the XR part of your demo?"}</p>
+    <p class="quote">1. What is the main challenge in your own ${team?"part of the project":"project"} right now?</p>
+    <p class="quote">2. ${team ? "Where does your code connect to a teammate's code? What is still unclear or not agreed?" : "What is still open in the XR part of your demo?"}</p>
     <div class="row"><span class="lab">Help with</span>${topics.map(t =>
       `<button class="chip" data-act="advice" data-v="${t.id}" aria-pressed="${S.advice===t.id}">${esc(t.label)}</button>`).join("")}</div>
     ${cur ? `<ul class="tips">${cur.tips.map(x=>`<li>${rich(x)}</li>`).join("")}</ul><div class="copy"><button class="btn small" data-act="copyadvice">Copy for “Advice given”</button></div>` : ""}
@@ -490,8 +490,8 @@ function renderGuide(){
   <h2>The check cycle, twice</h2>
   <table><thead><tr><th>Step</th><th>You say</th><th>Watch for</th></tr></thead><tbody>
   <tr><td>Locate</td><td>Name a behaviour, not a file: “Show me where…”</td><td>Goes straight there, or searches file names</td></tr>
-  <tr><td>Explain</td><td>“Walk me through this in your own words.” One minute.</td><td>Talks about the effect in the game, or reads code aloud</td></tr>
-  <tr><td>Predict</td><td>Propose the change. “Before we try it: what will happen?”</td><td>A concrete answer with a reason, or “it might break”</td></tr>
+  <tr><td>Explain</td><td>“Explain this in your own words.” One minute.</td><td>Talks about the effect in the game, or reads code aloud</td></tr>
+  <tr><td>Predict</td><td>Propose the change. “What do you think will happen?”</td><td>A concrete answer with a reason, or “it might break”</td></tr>
   <tr><td>Change</td><td>They type it, you don't dictate. Then they say what Play would show. No need to run it.</td><td>Types it without syntax being dictated</td></tr>
   <tr><td>Reconcile</td><td>If it differs: “Why did that happen?”</td><td>Authors usually work it out within a minute</td></tr>
   </tbody></table>
