@@ -132,6 +132,12 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
 .tag.given{background:var(--unclear-t);color:var(--fg)}
 .tag.editor{background:var(--sunk);color:var(--fg)}
 .deckname{color:var(--muted);font-size:12px;margin-left:auto}
+.where{font-size:13px;color:var(--muted);margin:0 0 6px;display:flex;gap:6px;flex-wrap:wrap;align-items:baseline}
+.where .wl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.where b{color:var(--fg);font-family:var(--mono);font-size:12.5px;font-weight:600}
+.about{font-size:13px;color:var(--muted);background:var(--sunk);border-radius:6px;padding:7px 10px;margin:4px 0 10px;max-width:68ch}
+.chip.step2{display:inline-flex;flex-direction:column;align-items:flex-start;border-radius:8px;padding:4px 10px;line-height:1.2;text-align:left}
+.chip.step2 small{font-size:11.5px;font-weight:400;opacity:.85}
 .say{font-size:17px;font-weight:600;line-height:1.35;margin:0 0 8px;text-wrap:pretty}
 .say::before{content:"Ask \201C";color:var(--muted);font-weight:500}
 .say::after{content:"\201D";color:var(--muted)}
@@ -222,6 +228,7 @@ const MODES = {
 const ADECKS = ["A1","A2","A3","A4","A5","A6"];
 const WEIGHTS = {A1:1, A2:1, A3:1.5, A4:2, A5:2, A6:2};
 const STEPS = ["Locate","Explain","Predict","Change","Reconcile"];
+const STALL = {Locate:"couldn't find the code", Explain:"read it aloud or stayed vague", Predict:"no clear prediction", Change:"needed help typing it", Reconcile:"couldn't explain the result"};
 const MOVES = {tweak:"Tweak", remove:"Remove", move:"Move it", extend:"Extend", trace:"Trace", "why-not":"Why not"};
 const SOURCES = {own:"Own code", given:"Given in brief/template"};
 function needsThird(){ return verdict().k==="third" || !!S.probes[2].deck || !!S.probes[2].result; }
@@ -370,6 +377,12 @@ function renderClock(){
 }
 
 /* ---------- render: card ---------- */
+function whereFile(w){ const f = (w||"").split(" · ")[0]; return /\.cs\b/.test(f) ? f : ""; }
+function whereHTML(w){
+  const i = w.indexOf(" · ");
+  const a = i<0 ? w : w.slice(0,i), b = i<0 ? "" : w.slice(i+3);
+  return /\.cs\b/.test(a) ? `<b>${esc(a)}</b>${b?`<span>${rich(b)}</span>`:""}` : `<span>${rich(w)}</span>`;
+}
 function cardHTML(deckKey, c, opts){
   opts = opts || {};
   const src = c.source==="given" ? "given" : c.source==="editor" ? "editor" : "";
@@ -378,6 +391,7 @@ function cardHTML(deckKey, c, opts){
     : `<details class="exp"><summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--accent)">Expected result</summary><p>${rich(c.expect)}<span class="typ">Typical result. Their code may behave differently.</span></p></details>`;
   return `<div class="card">
     <div class="meta"><span class="tag move">${MOVES[c.move]}</span>${src?`<span class="tag ${src}">${SOURCES[c.source]}</span>`:""}<span class="deckname">${esc(D[deckKey].title)}</span></div>
+    ${c.where ? `<p class="where"><span class="wl">Look in</span>${whereHTML(c.where)}</p>` : ""}
     <p class="say">${rich(c.locate)}</p>
     <p class="chg">${/^(Ask|Just|Trace|Show|Open)\b/.test(c.change)?"":"<b>Then:</b> "}${rich(c.change)}</p>
     ${c.source==="given"?`<p class="hint">This came with the brief or template, so focus on the prediction and the change.</p>`:""}
@@ -398,6 +412,7 @@ function probeHTML(i){
         `<button class="chip${S.sugg===k&&p.deck!==k?" sugg":""}" data-act="pick" data-p="0" data-v="${k}" aria-pressed="${p.deck===k}">${k}</button>`).join("")}
         <button class="btn small" data-act="suggest">Suggest one</button></div>
         <p class="hint">Suggestions favour A4–A6.</p>`;
+      if(p.deck && D[p.deck].about) deckRow += `<p class="about"><b>${esc(D[p.deck].title)}:</b> ${esc(D[p.deck].about)}</p>`;
     }
   } else if(i===1){
     title = S.mode==="bt"||S.mode==="bs" ? "Check 2: Final Project" : "Check 2: XR Development Project";
@@ -409,6 +424,7 @@ function probeHTML(i){
     const decks = (S.mode==="mm" ? ["TUTORIAL"] : ADECKS).concat([mode.p2]);
     deckRow = `<div class="row"><span class="lab">Deck</span>${decks.map(k =>
       `<button class="chip" data-act="pick" data-p="2" data-v="${k}" aria-pressed="${p.deck===k}">${deckLabel(k)}</button>`).join("")}</div>`;
+    if(p.deck && D[p.deck].about) deckRow += `<p class="about"><b>${esc(D[p.deck].title)}:</b> ${esc(D[p.deck].about)}</p>`;
   }
   let body;
   if(!S.modeChosen){
@@ -425,12 +441,12 @@ function probeHTML(i){
       <button class="chip res-clear" data-act="res" data-p="${i}" data-v="clear" aria-pressed="${p.result==="clear"}">Clear</button>
       <button class="chip res-unclear" data-act="res" data-p="${i}" data-v="unclear" aria-pressed="${p.result==="unclear"}">Unclear</button></div>
     ${p.result==="unclear" ? `<div class="row"><span class="lab">Stalled at</span>${STEPS.map(s =>
-      `<button class="chip res-unclear" data-act="fail" data-p="${i}" data-v="${s}" aria-pressed="${p.fails.includes(s)}">${s}</button>`).join("")}</div>`:""}
+      `<button class="chip res-unclear step2" data-act="fail" data-p="${i}" data-v="${s}" aria-pressed="${p.fails.includes(s)}"><span>${s}</span><small>${STALL[s]}</small></button>`).join("")}</div>`:""}
     <div class="row"><span class="lab">How they wrote it</span>
       <button class="chip res-clear" data-act="ai" data-p="${i}" data-v="yes" aria-pressed="${p.ai==="yes"}">Fits their AI path</button>
       <button class="chip res-doubt" data-act="ai" data-p="${i}" data-v="no" aria-pressed="${p.ai==="no"}">Doesn't fit</button>
       <button class="chip res-unclear" data-act="ai" data-p="${i}" data-v="unsure" aria-pressed="${p.ai==="unsure"}">Not sure</button></div>
-    <div class="row"><span class="lab">Script</span><input type="text" data-in="script" data-p="${i}" value="${esc(p.script)}" placeholder="e.g. Chaser.cs" aria-label="Script checked"></div>
+    <div class="row"><span class="lab">Note</span><input type="text" data-in="script" data-p="${i}" value="${esc(p.script)}" placeholder="e.g. showed their own EnemyAI.cs; needed a hint at Predict" aria-label="Note for this check" style="max-width:none;flex:1"></div>
     `;
   const phase = ["p1","p2","p3"][i];
   return `<section class="step" data-phase="${phase}"><div class="step-h"><h2>${title}</h2><span class="nowtag" hidden>now</span></div>
@@ -441,10 +457,11 @@ function copyText(i){
   if(!p.deck && !p.result) return "";
   const c = p.card ? findCard(p.card).card : null;
   const parts = [deckLabel(p.deck)||"?"];
-  if(p.script.trim()) parts.push(p.script.trim());
+  if(c && whereFile(c.where)) parts.push(whereFile(c.where));
   if(c) parts.push(MOVES[c.move]);
   parts.push(p.result ? (p.result==="clear"?"Clear":"Unclear"+(p.fails.length?" ("+p.fails.join(", ").toLowerCase()+")":"")) : "no result");
   if(p.ai) parts.push("AI path: "+(p.ai==="yes"?"fits":p.ai==="no"?"doesn't fit":"not sure"));
+  if(p.script.trim()) parts.push("note: "+p.script.trim());
   return parts.join(" · ");
 }
 const OUTCOMES = {pass:"Pass", doubt:"Doubt", needs:"Needs Maro"};
@@ -456,7 +473,8 @@ function finalOutcome(){
   const v = verdict(); return (v.k==="pass"||v.k==="doubt") ? v.k : null;
 }
 function notesText(){
-  const v = verdict(), o = finalOutcome(), lines = [];
+  const v = verdict(), o = finalOutcome(), lines = [], now = new Date();
+  lines.push("Checked: "+now.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})+", "+now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}));
   lines.push("Outcome: "+(o ? OUTCOMES[o] : "not decided")+(S.outcome && (v.k==="pass"||v.k==="doubt") && S.outcome!==v.k ? " (guide suggested "+v.h+")" : ""));
   S.probes.forEach((p,i) => { const t = copyText(i); if(t) lines.push("Check "+(i+1)+": "+t); });
   if(S.saw.trim()) lines.push("What I saw: "+S.saw.trim());
@@ -550,7 +568,7 @@ function renderDeck(k){
     const allowed = [0,1,2].filter(i => i===2 || (i===0 ? (MODES[S.mode].p1==="A" ? k.startsWith("A") : k===MODES[S.mode].p1) : k===MODES[S.mode].p2));
     return `<div class="card-actions">${allowed.map(i=>`<button class="btn small" data-act="use" data-p="${i}" data-v="${c.id}">Use for check ${i+1}</button>`).join("")}</div>`;
   };
-  return `<h2 class="deck-h">${esc(d.title)}</h2><p class="deck-sub">${esc(d.files)}. Pick any card, or let the interview tab deal one.</p>
+  return `<h2 class="deck-h">${esc(d.title)}</h2>${d.about?`<p class="about">${esc(d.about)}</p>`:""}<p class="deck-sub">${esc(d.files)}. Pick any card, or let the interview tab deal one.</p>
     <div class="legend"><span><span class="tag move">Move</span> type of change</span><span><span class="tag given">Given in brief/template</span> check understanding</span></div>
     ${cards.map(c => cardHTML(k, c, {actions:btns(c)})).join("")}`;
 }
