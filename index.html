@@ -115,6 +115,12 @@ main.wrap{padding-top:24px;padding-bottom:48px}
 .chip.res-clear[aria-pressed="true"]{background:var(--clear-t);border-color:var(--clear)}
 .chip.res-unclear[aria-pressed="true"]{background:var(--unclear-t);border-color:var(--unclear)}
 .chip.res-doubt[aria-pressed="true"]{background:var(--doubt-t);border-color:var(--doubt)}
+textarea.ta{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;min-height:52px;resize:vertical;margin-top:4px}
+.field{margin:10px 0}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--muted)}
+.tick{display:flex;gap:6px;align-items:center;font-size:14px;margin:8px 0}
+.tonotion{border:2px solid var(--accent);border-radius:8px;padding:14px 16px;margin-bottom:12px;background:var(--surface)}
+.tonotion h2{margin:0 0 6px}
 input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%;max-width:280px}
 
 /* the check card: the one bold element */
@@ -236,7 +242,8 @@ function reset(keepMode){
   S = { mode, tab:"flow", aiPath:null, sugg:null,
         timer:{running:false, start:0, acc:0}, phase:"setup", phaseAt:0,
         probes:[blankProbe(), blankProbe(), blankProbe()],
-        advice:null, armedNext:false, modeChosen:false };
+        advice:null, armedNext:false, modeChosen:false,
+        outcome:null, saw:"", ci1:"", ci2:"", unprepared:false, copied:false };
 }
 const live = {
   load(){ try{ const v = sessionStorage.getItem("crg-live"); return v ? JSON.parse(v) : null; }catch(e){ return null; } },
@@ -280,17 +287,17 @@ function findCard(id){
 function verdict(){
   const [a,b,c] = S.probes;
   if(S.probes.some(p => p.ai === "no"))
-    return {k:"doubt", h:"Doubt", t:"Their account doesn't fit the declared AI path. Write down what they said under Evidence in Notion. Maro follows up."};
+    return {k:"doubt", h:"Doubt", t:"Their account doesn't fit the declared AI path. Write down what they said under “What I saw”. Maro follows up."};
   if(!a.result || !b.result)
     return {k:"pending", h:"No outcome yet", t:"Mark check 1 and check 2 as clear or unclear."};
   const weak = p => p.result==="unclear" || p.ai==="unsure";
   const unclear = [a,b].filter(weak).length;
   if(unclear === 0) return {k:"pass", h:"Pass", t:"Two clear checks."};
-  if(unclear === 2) return {k:"doubt", h:"Doubt", t:"Both checks were unclear or uncertain. Write down where they got stuck under Evidence in Notion. Maro follows up."};
+  if(unclear === 2) return {k:"doubt", h:"Doubt", t:"Both checks were unclear or uncertain. Write down where they got stuck under “What I saw”. Maro follows up."};
   if(!c.result) return {k:"third", h:"Do a third check", t:"One check was unclear, or you weren't sure how the code came about. Pick a different file, ideally from another assignment."};
   return !weak(c)
     ? {k:"pass", h:"Pass", t:"The third check was clear."}
-    : {k:"doubt", h:"Doubt", t:"Still unclear after the third check. Write down where they got stuck under Evidence in Notion. Maro follows up."};
+    : {k:"doubt", h:"Doubt", t:"Still unclear after the third check. Write down where they got stuck under “What I saw”. Maro follows up."};
 }
 
 /* ---------- helpers ---------- */
@@ -324,7 +331,7 @@ function renderChrome(){
     decks.map(t => tb([t[0], esc(t[1])])).join("") +
     tb(["guide",`<span aria-hidden="true">?</span>How it works`],"t-help");
   document.querySelectorAll('[data-act="next"]').forEach(nb => {
-    nb.textContent = S.armedNext ? "Pasted into Notion? Click again" : "Next student";
+    nb.textContent = S.armedNext ? "Not copied yet. Click again to clear" : "Next student";
     nb.classList.toggle("armed", S.armedNext);
   });
   document.getElementById("modes").classList.toggle("need", !S.modeChosen);
@@ -432,18 +439,33 @@ function copyText(i){
   parts.push("AI path: "+(p.ai==="yes"?"fits":p.ai==="no"?"doesn't fit":p.ai==="unsure"?"not sure":"?"));
   return parts.join(" · ");
 }
+const OUTCOMES = {pass:"Pass", doubt:"Doubt", needs:"Needs Maro"};
+function finalOutcome(){
+  if(S.outcome) return S.outcome;
+  const v = verdict(); return (v.k==="pass"||v.k==="doubt") ? v.k : null;
+}
 function notesText(){
-  const lines = [];
+  const v = verdict(), o = finalOutcome(), lines = [];
+  lines.push("Outcome: "+(o ? OUTCOMES[o] : "not decided")+(S.outcome && (v.k==="pass"||v.k==="doubt") && S.outcome!==v.k ? " (guide suggested "+v.h+")" : ""));
   S.probes.forEach((p,i) => { const t = copyText(i); if(t) lines.push("Check "+(i+1)+": "+t); });
-  if(!lines.length) return "";
-  const v = verdict();
-  lines.push("Suggested: "+(v.k==="pending" ? "not complete" : v.h));
+  if(S.saw.trim()) lines.push("What I saw: "+S.saw.trim());
+  if(MODES[S.mode].status && (S.ci1.trim() || S.unprepared)){
+    lines.push("");
+    lines.push("Check-in"+(S.unprepared?" (didn't prepare)":"")+": "+S.ci1.trim());
+  }
   return lines.join("\n");
 }
-function notesHTML(){
-  const t = notesText();
-  if(!t) return "";
-  return `<div class="copy"><button class="btn small" data-act="copynotes">Copy check notes</button></div><pre class="notes" id="notes">${esc(t)}</pre>`;
+function toNotionHTML(){
+  const o = finalOutcome();
+  return `<section class="tonotion"><h2>Into Notion</h2>
+    <div class="copy"><button class="btn primary" data-act="copynotes">Copy for Notion</button>${S.copied?`<span class="note">Copied.</span>`:""}</div>
+    <pre class="notes" id="notes">${esc(notesText())}</pre>
+    <ol class="pastehow">
+      <li>Press <b>Copy for Notion</b>.</li>
+      <li>In their row: set <b>Check by</b> to you and <b>Outcome</b> to <b>${o?OUTCOMES[o]:"…"}</b>.</li>
+      <li>Click <b>Notes</b> and paste (Cmd+V or Ctrl+V).</li>
+    </ol>
+    <p class="hint">Don't share the outcome in the room.</p></section>`;
 }
 function aiHint(){
   const no = `<b>No-AI:</b> you should hear how they wrote it: docs, tutorials, what went wrong. Code that looks generated with no story behind it gets a third check.`;
@@ -479,15 +501,13 @@ function renderFlow(){
   ${probeHTML(1)}
   ${p3 ? probeHTML(2) : ""}
   <div class="verdict ${v.k}"><h2>${v.h}</h2><p class="note" style="color:inherit">${v.t}</p>
-    ${notesHTML()}
-    <p class="cyc-h" style="margin-top:12px">Then, in their Notion row:</p>
-    <ol class="pastehow">
-      <li>Press <b>Copy check notes</b> above.</li>
-      <li>Open their row (click the name). Under <b>Check</b>, click the empty <b>Check notes</b> field and paste (Cmd+V or Ctrl+V).</li>
-      <li>Pick the <b>Outcome</b>.${v.k==="doubt" ? " Write what you saw under <b>Evidence</b>." : ""}</li>
-    </ol>
-    <p class="hint">Don't share the outcome in the room.</p></div>
+    <div class="row"><span class="lab">Outcome</span>${Object.entries(OUTCOMES).map(([k,l]) =>
+      `<button class="chip" data-act="outcome" data-v="${k}" aria-pressed="${finalOutcome()===k}">${l}</button>`).join("")}</div>
+    <p class="hint">The guide picks one when it can. Change it if you disagree. <b>Needs Maro</b>: the check couldn't run properly, e.g. the repo isn't shared.</p>
+    ${["doubt","needs"].includes(finalOutcome()) ? `<div class="field"><label for="saw">What I saw</label><textarea class="ta" id="saw" data-in="saw" placeholder="${finalOutcome()==="needs"?"e.g. repo not shared with the course group":"e.g. couldn't predict what removing deltaTime does; said a friend helped"}">${esc(S.saw)}</textarea></div>` : ""}
+    </div>
   ${mode.status ? statusHTML(team) : `<section class="step" data-phase="handover"><div class="step-h"><h2>Hand over</h2></div><p class="note">Check done. Send them to Maro's table for the 10-minute talk.</p></section>`}
+  ${toNotionHTML()}
   <div class="endrow"><button class="btn" data-act="next">Next student</button></div>
   `;
 }
@@ -499,10 +519,12 @@ function statusHTML(team){
     <p class="note">They bring two points. Listen, ask what they've tried, then help them find one concrete next step.</p>
     <p class="quote">1. What is the main challenge in your own ${team?"part of the project":"project"} right now?</p>
     <p class="quote">2. ${team ? "Where does your code connect to a teammate's code? What is still unclear or not agreed?" : "What is still open in the XR part of your demo?"}</p>
-    <div class="row"><span class="lab">Help with</span>${topics.map(t =>
+    <div class="row"><span class="lab">Ideas for</span>${topics.map(t =>
       `<button class="chip" data-act="advice" data-v="${t.id}" aria-pressed="${S.advice===t.id}">${esc(t.label)}</button>`).join("")}</div>
-    ${cur ? `<ul class="tips">${cur.tips.map(x=>`<li>${rich(x)}</li>`).join("")}</ul><div class="copy"><button class="btn small" data-act="copyadvice">Copy advice</button><span class="note">Paste it into <b>Advice given</b> in their row (under Project check-in).</span></div>` : ""}
-    <p class="hint">Offer what fits, in your own words. Note their two points and your advice in Notion; it goes to ${team?"their IMDEV team":"them directly"}. Not prepared? Ask both questions anyway and tick Unprepared.</p>
+    ${cur ? `<ul class="tips">${cur.tips.map(x=>`<li>${rich(x)}</li>`).join("")}</ul>` : ""}
+    <p class="hint">The ideas are for you. Offer what fits, in your own words.</p>
+    <div class="field"><label for="ci1">Short note: their two points and what you suggested</label><textarea class="ta" id="ci1" data-in="ci1" placeholder="e.g. enemy pathing is slow; event names with teammate not agreed. Suggested: agree on one event this week.">${esc(S.ci1)}</textarea></div>
+    <label class="tick"><input type="checkbox" data-in="unprepared" ${S.unprepared?"checked":""}> Didn't prepare their two points</label>
   </section>`;
 }
 
@@ -548,7 +570,7 @@ function renderGuide(){
   <li>Two clear checks: <b>Pass</b>.</li>
   <li>One unclear: a third check on a different file. Clear: Pass. Still unclear: <b>Doubt</b>.</li>
   <li>Their account doesn't fit the declared AI path: <b>Doubt</b>.</li>
-  <li>Doubt isn't a fail. It means: write down what you saw under Evidence, so Maro has something concrete to follow up on. TAs never mark Fail.</li>
+  <li>Doubt isn't a fail. It means: write down what you saw in the guide's “What I saw” box, so Maro has something concrete to follow up on. TAs never mark Fail.</li>
   <li>Don't argue it out or hint that something is wrong. Move on to the next check.</li>
   </ul>
 
@@ -557,7 +579,7 @@ function renderGuide(){
   <li><b>Repo not cloned:</b> open the code in GitLab's web view and check there.</li>
   <li><b>No laptop or an empty battery:</b> the same, on your laptop.</li>
   <li><b>Little project code so far:</b> that's normal, it's a work-in-progress check. Check the newest code they wrote, even if it doesn't work yet.</li>
-  <li><b>Repo not shared with the course group:</b> note it under Flag for Maro. They come back on Wed 16:25.</li>
+  <li><b>Repo not shared with the course group:</b> Outcome <b>Needs Maro</b>, and say so under “What I saw”. They come back on Wed 16:25.</li>
   </ul>
 
   <h2>Change moves</h2>
@@ -605,6 +627,7 @@ document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if(!b) return;
   const a = b.dataset.act, v = b.dataset.v, i = b.dataset.p !== undefined ? Number(b.dataset.p) : null;
   if(a !== "next" && S.armedNext){ S.armedNext = false; }
+  if(!["next","tab","copynotes","timer","nextphase","phase","reveal"].includes(a)) S.copied = false;
   switch(a){
     case "mode": S.mode = v; S.modeChosen = true; store.set("crg-mode", v); S.advice = null;
       // reset check decks that no longer fit
@@ -621,7 +644,7 @@ document.addEventListener("click", e => {
       else { S.timer.start = Date.now(); S.timer.running = true; }
       break;
     case "next":
-      if(!S.armedNext){ S.armedNext = true; renderChrome(); return; }
+      if(!S.copied && !S.armedNext){ S.armedNext = true; renderChrome(); return; }
       reset(true); live.clear(); break;
     case "suggest": { const k = suggestA(); S.sugg = k; const p = S.probes[0]; p.deck = k; p.card = deal(k).id; p.reveal = false; break; }
     case "pick": { const p = S.probes[i]; p.deck = v;
@@ -634,15 +657,18 @@ document.addEventListener("click", e => {
     case "ai": { const p = S.probes[i]; p.ai = p.ai===v ? null : v; break; }
     case "aipath": S.aiPath = S.aiPath===v ? null : v; break;
     case "advice": S.advice = S.advice===v ? null : v; break;
-    case "copynotes": b.setAttribute("data-copying",""); copyOut(notesText()); return;
-    case "copyadvice": { const t = window.ADVICE.find(x => x.id === S.advice);
-      if(t){ b.setAttribute("data-copying",""); copyOut(t.tips.join(" ").replace(/`/g,"")); } return; }
+    case "copynotes": S.copied = true; live.save(); b.setAttribute("data-copying",""); copyOut(notesText()); return;
+    case "outcome": S.outcome = finalOutcome()===v && S.outcome ? null : v; break;
   }
   render();
 });
 document.addEventListener("input", e => {
-  const t = e.target; if(t.dataset.in !== "script") return;
-  S.probes[Number(t.dataset.p)].script = t.value;
+  const t = e.target, k = t.dataset.in; if(!k) return;
+  if(k === "script") S.probes[Number(t.dataset.p)].script = t.value;
+  else if(k === "unprepared") S.unprepared = t.checked;
+  else if(["saw","ci1","ci2"].includes(k)) S[k] = t.value;
+  else return;
+  S.copied = false;
   live.save();
   const o = document.getElementById("notes");
   if(o) o.textContent = notesText();
