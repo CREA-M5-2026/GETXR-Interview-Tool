@@ -56,7 +56,7 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.05e
 .modes button[aria-pressed="true"]{color:var(--fg);background:var(--accent-t);box-shadow:inset 0 -2px 0 var(--accent)}
 .clock{flex:none;display:flex;align-items:center;gap:8px;margin-right:6px}
 .nextstu{margin-left:auto;flex:none}
-.time{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1;min-width:4.6ch;text-align:right}
+.time{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1;min-width:4ch}
 .time.warn{color:var(--unclear)} .time.over{color:var(--doubt)}
 .phint{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .phint.move{color:var(--doubt);font-weight:600}
@@ -140,7 +140,9 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
 .chg .q{font-weight:600}
 .chg-hint{font-size:12.5px;color:var(--muted);margin:4px 0 0}
 .about{font-size:13px;color:var(--muted);background:var(--sunk);border-radius:6px;padding:7px 10px;margin:4px 0 10px}
-.chip.step2{display:inline-flex;flex-direction:column;align-items:flex-start;border-radius:8px;padding:4px 10px;line-height:1.2;text-align:left}
+.stall{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+@media (max-width:620px){.stall{grid-template-columns:repeat(2,1fr)}}
+.chip.step2{width:100%;display:inline-flex;flex-direction:column;align-items:flex-start;border-radius:8px;padding:4px 10px;line-height:1.2;text-align:left}
 .chip.step2 small{font-size:11.5px;font-weight:400;opacity:.85}
 .say{font-size:17px;font-weight:600;line-height:1.35;margin:0 0 8px;text-wrap:pretty}
 .say::before{content:"Ask \201C";color:var(--muted);font-weight:500}
@@ -183,7 +185,7 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
 .guide th{font-size:12.5px;color:var(--muted);font-weight:600}
 .guide ol,.guide ul{margin:0;padding-left:20px;font-size:14px}
 .guide li{margin:5px 0}
-.guide p{margin:10px 0;font-size:14px;max-width:68ch}
+.guide p{margin:10px 0;font-size:14px}
 @media (max-width:520px){.time{font-size:20px}.say{font-size:16px}.row .lab{min-width:0;width:100%}}
 @media (prefers-reduced-motion:no-preference){.step.now{transition:box-shadow .2s}}
 </style>
@@ -232,7 +234,7 @@ const MODES = {
 const ADECKS = ["A1","A2","A3","A4","A5","A6"];
 const WEIGHTS = {A1:1, A2:1, A3:1.5, A4:2, A5:2, A6:2};
 const STEPS = ["Locate","Explain","Predict","Change","Reconcile"];
-const STALL = {Locate:"couldn't find the code", Explain:"read it aloud or stayed vague", Predict:"no clear prediction", Change:"needed help typing it", Reconcile:"couldn't explain the result"};
+const STALL = {Locate:"couldn't find the code", Explain:"read aloud or stayed vague", Predict:"no clear prediction", Change:"needed help typing it", Reconcile:"couldn't explain the result"};
 const MOVES = {tweak:"Tweak", remove:"Remove", move:"Move it", extend:"Extend", trace:"Trace", "why-not":"Why not"};
 const SOURCES = {own:"Own code", given:"Given in brief/template"};
 function needsThird(){ return verdict().k==="third" || !!S.probes[2].deck || !!S.probes[2].result; }
@@ -445,8 +447,8 @@ function probeHTML(i){
   const res = `<div class="row"><span class="lab">Result</span>
       <button class="chip res-clear" data-act="res" data-p="${i}" data-v="clear" aria-pressed="${p.result==="clear"}">Clear</button>
       <button class="chip res-unclear" data-act="res" data-p="${i}" data-v="unclear" aria-pressed="${p.result==="unclear"}">Unclear</button></div>
-    ${p.result==="unclear" ? `<div class="row"><span class="lab">Stalled at</span>${STEPS.map(s =>
-      `<button class="chip res-unclear step2" data-act="fail" data-p="${i}" data-v="${s}" aria-pressed="${p.fails.includes(s)}"><span>${s}</span><small>${STALL[s]}</small></button>`).join("")}</div>`:""}
+    ${p.result==="unclear" ? `<div class="row"><span class="lab">Stalled at</span><div class="stall">${STEPS.map(s =>
+      `<button class="chip res-unclear step2" data-act="fail" data-p="${i}" data-v="${s}" aria-pressed="${p.fails.includes(s)}"><span>${s}</span><small>${STALL[s]}</small></button>`).join("")}</div></div>`:""}
     <div class="row"><span class="lab">How they wrote it</span>
       <button class="chip res-clear" data-act="ai" data-p="${i}" data-v="yes" aria-pressed="${p.ai==="yes"}">Fits their AI path</button>
       <button class="chip res-doubt" data-act="ai" data-p="${i}" data-v="no" aria-pressed="${p.ai==="no"}">Doesn't fit</button>
