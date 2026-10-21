@@ -54,6 +54,7 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.05e
 .modes button{border:0;background:transparent;padding:5px 9px;font-size:12.5px;font-weight:500;color:var(--muted);border-right:1px solid var(--line);white-space:nowrap}
 .seg button:last-child{border-right:0}
 .modes button[aria-pressed="true"]{color:var(--fg);background:var(--accent-t);box-shadow:inset 0 -2px 0 var(--accent)}
+.vsep{width:1px;align-self:stretch;background:var(--line,#ccc);margin:2px 6px}
 .clock{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .time{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1;min-width:4.6ch;text-align:right}
 .time.warn{color:var(--unclear)} .time.over{color:var(--doubt)}
@@ -170,6 +171,8 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
       <div class="clock">
         <span class="time" id="time" aria-live="off">0:00</span>
         <button class="btn primary" id="startBtn" data-act="timer">Start</button>
+        <span class="vsep" aria-hidden="true"></span>
+        <button class="btn nextstu" data-act="next">Next student</button>
       </div>
     </div>
     <div class="bar-row2">
@@ -178,7 +181,6 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
     </div>
     <div class="bar-row3">
       <nav class="tabs" role="tablist" id="tabs"></nav>
-      <button class="btn small nextstu" data-act="next">Next student</button>
     </div>
   </div>
 </div>
