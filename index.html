@@ -94,9 +94,9 @@ main.wrap{padding-top:24px;padding-bottom:48px}
 .note{color:var(--muted);font-size:13.5px;margin:0 0 4px}
 .checks{margin:0;padding-left:20px;font-size:14px}
 .checks li{margin:4px 0}
-.cycle{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px;font-size:12.5px}
-.cycle span{background:var(--sunk);border-radius:4px;padding:2px 7px;color:var(--muted)}
-.cycle span b{color:var(--fg);font-weight:600}
+.cyc-h{margin:12px 0 2px;font-size:13.5px;font-weight:600}
+.cycle{margin:0;padding-left:22px;font-size:13.5px}
+.cycle li{margin:3px 0}
 .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
 .row .lab{font-size:12.5px;color:var(--muted);min-width:76px}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px;font-size:13px;font-weight:500}
@@ -443,7 +443,14 @@ function renderFlow(){
       <button class="chip" data-act="aipath" data-v="noai" aria-pressed="${S.aiPath==="noai"}">No-AI</button>
       <button class="chip" data-act="aipath" data-v="ai" aria-pressed="${S.aiPath==="ai"}">AI-Assisted</button></div>
     ${aiHint()}
-    <div class="cycle" aria-label="Check cycle">${STEPS.map((s,i)=>`<span><b>${s}</b>${["","",""," (not dictated)",""][i]}</span>`).join("")}</div>
+    <p class="cyc-h">Each check has five steps:</p>
+    <ol class="cycle">
+      <li><b>Locate:</b> they find the code you name.</li>
+      <li><b>Explain:</b> they say what it does, in their own words.</li>
+      <li><b>Predict:</b> they say what a small change will do.</li>
+      <li><b>Change:</b> they type the change themselves.</li>
+      <li><b>Reconcile:</b> if the result is different, they explain why.</li>
+    </ol>
     <p class="hint">No AI during the interview. Undo each change afterwards (discard in GitHub Desktop).</p>
   </section>
   ${probeHTML(0)}
