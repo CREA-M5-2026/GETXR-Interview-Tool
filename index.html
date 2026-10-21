@@ -83,6 +83,14 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.05e
 .tabs::-webkit-scrollbar{display:none}
 .tabs button{border:0;background:transparent;padding:6px 9px 7px;font-size:13.5px;font-weight:500;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent}
 .tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
+.tabs{align-items:center}
+.tabs .t-main{font-weight:700;color:var(--fg);font-size:14.5px;padding-right:12px}
+.tabs .t-sep{width:1px;height:18px;background:var(--line);margin:0 8px 0 4px;flex:none}
+.tabs .t-lab{font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-right:2px;white-space:nowrap}
+.tabs .t-help{margin-left:auto}
+.tabs .t-help span{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;border:1.5px solid currentColor;font-size:10.5px;font-weight:700;margin-right:5px;vertical-align:-2px}
+.pastehow{margin:10px 0 0;padding-left:20px;font-size:13.5px}
+.pastehow li{margin:3px 0}
 
 /* content */
 main.wrap{padding-top:24px;padding-bottom:48px}
@@ -230,7 +238,14 @@ function reset(keepMode){
         probes:[blankProbe(), blankProbe(), blankProbe()],
         advice:null, armedNext:false, modeChosen:false };
 }
+const live = {
+  load(){ try{ const v = sessionStorage.getItem("crg-live"); return v ? JSON.parse(v) : null; }catch(e){ return null; } },
+  save(){ try{ sessionStorage.setItem("crg-live", JSON.stringify(S)); }catch(e){} },
+  clear(){ try{ sessionStorage.removeItem("crg-live"); }catch(e){} }
+};
 reset(false);
+{ const saved = live.load();
+  if(saved && saved.probes && saved.timer && MODES[saved.mode]) S = Object.assign(S, saved, {armedNext:false}); }
 
 /* ---------- dealing with rotation ---------- */
 function cardsFor(deckKey){
@@ -301,8 +316,13 @@ function renderChrome(){
     `<button data-act="mode" data-v="${k}" aria-pressed="${S.modeChosen && S.mode===k}" title="${esc(v.tip)}">${esc(v.label)}</button>`).join("")}</div></div>`).join("");
   const tabs = visibleTabs();
   if(!tabs.some(t=>t[0]===S.tab)) S.tab = "flow";
-  document.getElementById("tabs").innerHTML = tabs.map(([k,l]) =>
-    `<button role="tab" data-act="tab" data-v="${k}" aria-selected="${S.tab===k}">${esc(l)}</button>`).join("");
+  const tb = ([k,l], cls) => `<button role="tab" class="${cls||""}" data-act="tab" data-v="${k}" aria-selected="${S.tab===k}">${l}</button>`;
+  const decks = tabs.filter(t => t[0]!=="flow" && t[0]!=="guide");
+  document.getElementById("tabs").innerHTML =
+    tb(["flow","Interview"],"t-main") +
+    `<span class="t-sep" aria-hidden="true"></span><span class="t-lab">Card decks</span>` +
+    decks.map(t => tb([t[0], esc(t[1])])).join("") +
+    tb(["guide",`<span aria-hidden="true">?</span>How it works`],"t-help");
   document.querySelectorAll('[data-act="next"]').forEach(nb => {
     nb.textContent = S.armedNext ? "Pasted into Notion? Click again" : "Next student";
     nb.classList.toggle("armed", S.armedNext);
@@ -364,7 +384,7 @@ function probeHTML(i){
       deckRow = `<div class="row"><span class="lab">Assignment</span>${ADECKS.map(k =>
         `<button class="chip${S.sugg===k&&p.deck!==k?" sugg":""}" data-act="pick" data-p="0" data-v="${k}" aria-pressed="${p.deck===k}">${k}</button>`).join("")}
         <button class="btn small" data-act="suggest">Suggest one</button></div>
-        <p class="hint">Suggestions favour A4–A6. If the Notion row points somewhere else, go with that.</p>`;
+        <p class="hint">Suggestions favour A4–A6.</p>`;
     }
   } else if(i===1){
     title = S.mode==="bt"||S.mode==="bs" ? "Check 2: Final Project" : "Check 2: XR Development Project";
@@ -423,7 +443,7 @@ function notesText(){
 function notesHTML(){
   const t = notesText();
   if(!t) return "";
-  return `<div class="copy"><button class="btn small" data-act="copynotes">Copy for “Check notes”</button></div><pre class="notes" id="notes">${esc(t)}</pre>`;
+  return `<div class="copy"><button class="btn small" data-act="copynotes">Copy check notes</button></div><pre class="notes" id="notes">${esc(t)}</pre>`;
 }
 function aiHint(){
   const no = `<b>No-AI:</b> you should hear how they wrote it: docs, tutorials, what went wrong. Code that looks generated with no story behind it gets a third check.`;
@@ -439,7 +459,7 @@ function renderFlow(){
   <section class="step" data-phase="setup"><div class="step-h"><h2>Setup</h2><span class="t">1 min</span><span class="nowtag" hidden>now</span></div>
     <ul class="checks">
       <li>${S.mode==="mm" ? "Tutorial project and XR Development Project" : S.mode==="m" ? "XR Development Project and A1–A6" : "Final Project and A1–A6"} open in the code editor. Unity isn't needed.</li>
-      <li>Notion row open: team, pointers, AI path</li>
+      <li>Notion row open: team and AI path</li>
     </ul>
     <div class="row"><span class="lab">AI path</span>
       <button class="chip" data-act="aipath" data-v="noai" aria-pressed="${S.aiPath==="noai"}">No-AI</button>
@@ -460,7 +480,13 @@ function renderFlow(){
   ${p3 ? probeHTML(2) : ""}
   <div class="verdict ${v.k}"><h2>${v.h}</h2><p class="note" style="color:inherit">${v.t}</p>
     ${notesHTML()}
-    <p class="hint">In Notion: paste into Check notes, pick the Outcome${v.k==="doubt"?", write the Evidence":""}. Don't share the outcome in the room.</p></div>
+    <p class="cyc-h" style="margin-top:12px">Then, in their Notion row:</p>
+    <ol class="pastehow">
+      <li>Press <b>Copy check notes</b> above.</li>
+      <li>Open their row (click the name). Under <b>Check</b>, click the empty <b>Check notes</b> field and paste (Cmd+V or Ctrl+V).</li>
+      <li>Pick the <b>Outcome</b>.${v.k==="doubt" ? " Write what you saw under <b>Evidence</b>." : ""}</li>
+    </ol>
+    <p class="hint">Don't share the outcome in the room.</p></div>
   ${mode.status ? statusHTML(team) : `<section class="step" data-phase="handover"><div class="step-h"><h2>Hand over</h2></div><p class="note">Check done. Send them to Maro's table for the 10-minute talk.</p></section>`}
   <div class="endrow"><button class="btn" data-act="next">Next student</button></div>
   `;
@@ -475,7 +501,7 @@ function statusHTML(team){
     <p class="quote">2. ${team ? "Where does your code connect to a teammate's code? What is still unclear or not agreed?" : "What is still open in the XR part of your demo?"}</p>
     <div class="row"><span class="lab">Help with</span>${topics.map(t =>
       `<button class="chip" data-act="advice" data-v="${t.id}" aria-pressed="${S.advice===t.id}">${esc(t.label)}</button>`).join("")}</div>
-    ${cur ? `<ul class="tips">${cur.tips.map(x=>`<li>${rich(x)}</li>`).join("")}</ul><div class="copy"><button class="btn small" data-act="copyadvice">Copy for “Advice given”</button></div>` : ""}
+    ${cur ? `<ul class="tips">${cur.tips.map(x=>`<li>${rich(x)}</li>`).join("")}</ul><div class="copy"><button class="btn small" data-act="copyadvice">Copy advice</button><span class="note">Paste it into <b>Advice given</b> in their row (under Project check-in).</span></div>` : ""}
     <p class="hint">Offer what fits, in your own words. Note their two points and your advice in Notion; it goes to ${team?"their IMDEV team":"them directly"}. Not prepared? Ask both questions anyway and tick Unprepared.</p>
   </section>`;
 }
@@ -557,6 +583,7 @@ function renderGuide(){
 
 /* ---------- main render ---------- */
 function render(){
+  live.save();
   renderChrome();
   const m = document.getElementById("main");
   m.innerHTML = S.tab==="flow" ? renderFlow() : S.tab==="guide" ? renderGuide() : renderDeck(S.tab);
@@ -565,7 +592,7 @@ function render(){
 
 /* ---------- actions ---------- */
 function copyOut(text){
-  const done = ok => { const b = document.querySelector(`[data-copying]`); if(b){ b.textContent = ok?"Copied":"Select and copy the text"; b.removeAttribute("data-copying"); setTimeout(render, 1200);} };
+  const done = ok => { const b = document.querySelector(`[data-copying]`); if(b){ b.textContent = ok?"Copied. Now paste it in Notion":"Select and copy the text"; b.removeAttribute("data-copying"); setTimeout(render, 2200);} };
   const fallback = () => {
     const ta = document.createElement("textarea"); ta.value = text; ta.style.position="fixed"; ta.style.opacity="0";
     document.body.appendChild(ta); ta.select(); let ok=false; try{ ok = document.execCommand("copy"); }catch(e){}
@@ -595,7 +622,7 @@ document.addEventListener("click", e => {
       break;
     case "next":
       if(!S.armedNext){ S.armedNext = true; renderChrome(); return; }
-      reset(true); break;
+      reset(true); live.clear(); break;
     case "suggest": { const k = suggestA(); S.sugg = k; const p = S.probes[0]; p.deck = k; p.card = deal(k).id; p.reveal = false; break; }
     case "pick": { const p = S.probes[i]; p.deck = v;
       p.card = (i===1 && S.mode==="bt" && v==="PROJECT" && !p.card) ? "p-2" : deal(v).id; p.reveal = false; break; }
@@ -616,6 +643,7 @@ document.addEventListener("click", e => {
 document.addEventListener("input", e => {
   const t = e.target; if(t.dataset.in !== "script") return;
   S.probes[Number(t.dataset.p)].script = t.value;
+  live.save();
   const o = document.getElementById("notes");
   if(o) o.textContent = notesText();
 });
