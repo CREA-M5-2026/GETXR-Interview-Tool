@@ -64,7 +64,7 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.05e
 .btn:hover{background:var(--sunk)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.primary:hover{filter:brightness(1.05);background:var(--accent)}
-.btn.armed{background:var(--doubt);border-color:var(--doubt);color:#fff}
+.btn.armed{background:var(--surface);border-color:var(--doubt);color:var(--doubt)}
 .btn.small{padding:3px 8px;font-size:12px;font-weight:500}
 .phases{flex:1;min-width:0;display:flex;gap:3px;overflow-x:auto;scrollbar-width:none}
 .ph{border:0;font:inherit;cursor:pointer;text-align:left;flex:var(--w) 1 auto;min-width:max-content;height:24px;border-radius:3px;background:var(--sunk);position:relative;overflow:hidden;font-size:11.5px;color:var(--muted);display:flex;align-items:center;padding:0 6px;white-space:nowrap}
@@ -336,7 +336,8 @@ function renderChrome(){
     decks.map(t => tb([t[0], esc(t[1])])).join("");
   document.getElementById("helpBtn").setAttribute("aria-pressed", S.tab==="guide");
   document.querySelectorAll('[data-act="next"]').forEach(nb => {
-    nb.textContent = S.armedNext ? "Not copied yet. Click again to clear" : "Next student";
+    nb.textContent = S.armedNext ? "Not copied. Clear?" : "Next student";
+    nb.title = S.armedNext ? "You haven't pressed Copy for Notion yet. Click again to clear anyway." : "";
     nb.classList.toggle("armed", S.armedNext);
   });
   document.getElementById("modes").classList.toggle("need", !S.modeChosen);
@@ -447,6 +448,9 @@ function copyText(i){
   return parts.join(" · ");
 }
 const OUTCOMES = {pass:"Pass", doubt:"Doubt", needs:"Needs Maro"};
+function hasData(){
+  return S.probes.some(p => p.deck || p.result || p.ai || p.script) || S.outcome || S.saw || S.ci1 || S.unprepared || S.aiPath;
+}
 function finalOutcome(){
   if(S.outcome) return S.outcome;
   const v = verdict(); return (v.k==="pass"||v.k==="doubt") ? v.k : null;
@@ -655,7 +659,7 @@ document.addEventListener("click", e => {
       else { S.timer.start = Date.now(); S.timer.running = true; }
       break;
     case "next":
-      if(!S.copied && !S.armedNext){ S.armedNext = true; renderChrome(); return; }
+      if(!S.copied && !S.armedNext && hasData()){ S.armedNext = true; renderChrome(); return; }
       reset(true); live.clear(); break;
     case "suggest": { const k = suggestA(); S.sugg = k; const p = S.probes[0]; p.deck = k; p.card = deal(k).id; p.reveal = false; break; }
     case "pick": { const p = S.probes[i]; p.deck = v;
