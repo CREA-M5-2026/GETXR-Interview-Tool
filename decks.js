@@ -263,7 +263,7 @@ window.DECKS = {
       { id: "p-2", move: "trace", source: "own", only: "team",
         locate: "Show me where your code meets a teammate's code.",
         change: "Trace it: what calls what, and what data is passed?",
-        expect: "Concrete method or event names, and who owns each side. If ownership is disputed: `git log --author`." },
+        expect: "Concrete method or event names, and who owns each side." },
       { id: "p-3", move: "tweak", source: "own",
         locate: "Show me a value you would change to tune the game.",
         change: "Change it in the code to 0, then to 10×.",
