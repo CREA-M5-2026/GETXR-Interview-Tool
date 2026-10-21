@@ -503,8 +503,8 @@ function renderFlow(){
   <div class="verdict ${v.k}"><h2>${v.h}</h2><p class="note" style="color:inherit">${v.t}</p>
     <div class="row"><span class="lab">Outcome</span>${Object.entries(OUTCOMES).map(([k,l]) =>
       `<button class="chip" data-act="outcome" data-v="${k}" aria-pressed="${finalOutcome()===k}">${l}</button>`).join("")}</div>
-    <p class="hint">The guide picks one when it can. Change it if you disagree. <b>Needs Maro</b>: the check couldn't run properly, e.g. the repo isn't shared.</p>
-    ${["doubt","needs"].includes(finalOutcome()) ? `<div class="field"><label for="saw">What I saw</label><textarea class="ta" id="saw" data-in="saw" placeholder="${finalOutcome()==="needs"?"e.g. repo not shared with the course group":"e.g. couldn't predict what removing deltaTime does; said a friend helped"}">${esc(S.saw)}</textarea></div>` : ""}
+    <p class="hint">The guide picks one when it can. Change it if you disagree. <b>Needs Maro</b>: the check couldn't run properly, e.g. no code to look at, or the slot was cut short.</p>
+    ${["doubt","needs"].includes(finalOutcome()) ? `<div class="field"><label for="saw">What I saw</label><textarea class="ta" id="saw" data-in="saw" placeholder="${finalOutcome()==="needs"?"e.g. project code not on their laptop and not in GitLab":"e.g. couldn't predict what removing deltaTime does; said a friend helped"}">${esc(S.saw)}</textarea></div>` : ""}
     </div>
   ${mode.status ? statusHTML(team) : `<section class="step" data-phase="handover"><div class="step-h"><h2>Hand over</h2></div><p class="note">Check done. Send them to Maro's table for the 10-minute talk.</p></section>`}
   ${toNotionHTML()}
@@ -579,7 +579,7 @@ function renderGuide(){
   <li><b>Repo not cloned:</b> open the code in GitLab's web view and check there.</li>
   <li><b>No laptop or an empty battery:</b> the same, on your laptop.</li>
   <li><b>Little project code so far:</b> that's normal, it's a work-in-progress check. Check the newest code they wrote, even if it doesn't work yet.</li>
-  <li><b>Repo not shared with the course group:</b> Outcome <b>Needs Maro</b>, and say so under “What I saw”. They come back on Wed 16:25.</li>
+  <li><b>No code to look at, or the slot was cut short:</b> Outcome <b>Needs Maro</b>, and say what happened under “What I saw”.</li>
   </ul>
 
   <h2>Change moves</h2>
