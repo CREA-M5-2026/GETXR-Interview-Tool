@@ -397,7 +397,7 @@ function cardHTML(deckKey, c, opts){
   opts = opts || {};
   const src = c.source==="given" ? "given" : c.source==="editor" ? "editor" : "";
   const exp = opts.probe !== undefined
-    ? `<div class="exp"><button data-act="reveal" data-p="${opts.probe}" aria-expanded="${!!opts.reveal}">${opts.reveal?"Hide expected result":"Show expected result"}</button>${opts.reveal?`<p>${rich(c.expect)}<span class="typ">Typical result. Their code may behave differently, and that's what Reconcile is for.</span></p>`:""}</div>`
+    ? `<div class="exp"><button data-act="reveal" data-p="${opts.probe}" aria-expanded="${!!opts.reveal}">${deckKey==="TUTORIAL" ? (opts.reveal?"Hide what to listen for":"Show what to listen for") : (opts.reveal?"Hide expected result":"Show expected result")}</button>${opts.reveal?`<p>${rich(c.expect)}<span class="typ">Typical result. Their code may behave differently, and that's what Reconcile is for.</span></p>`:""}</div>`
     : `<details class="exp"><summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--accent)">Expected result</summary><p>${rich(c.expect)}<span class="typ">Typical result. Their code may behave differently.</span></p></details>`;
   return `<div class="card">
     <div class="meta"><span class="tag move">${MOVES[c.move]}</span>${src?`<span class="tag ${src}">${SOURCES[c.source]}</span>`:""}<span class="deckname">${esc(D[deckKey].title)}</span></div>
@@ -419,7 +419,7 @@ function probeHTML(i){
     const kind = i===0 ? mode.p1 : mode.p2;
     title = kind==="TUTORIAL" ? (i===0 ? "Check 1: tutorial package" : "Check 2: tutorial package, another part")
                               : (i===0 ? "Check 1: foundation assignment" : "Check 2: another foundation assignment");
-    sub = kind==="TUTORIAL" ? (i===0 ? "Tutorial project." : "Tutorial project, a different script from check 1.")
+    sub = kind==="TUTORIAL" ? (i===0 ? "Their tutorial's example project. There's no fixed template, so start with: “Give me a one-minute tour: what does your tutorial teach, and which script does the work?” Then pick a spot yourself and use the card." : "Another part of the tutorial code: a different script or step from check 1.")
                             : (i===0 ? "Stay in the code editor. Ask what Play would show instead of running it." : "A different assignment from check 1. Code editor only, as before.");
     if(kind==="A"){
       const other = S.probes[1-i].deck;
