@@ -136,6 +136,11 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
 .where .wl{font-size:12px;color:var(--muted)}
 .where b{color:var(--fg);font-family:var(--mono);font-size:13px;font-weight:700;background:var(--accent-t);border:1px solid var(--accent);border-radius:4px;padding:1px 7px}
 .where span:last-child{color:var(--fg)}
+.walk-steps{margin:0 0 10px;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.walk-steps li{line-height:1.45}
+.walk-steps .ws{display:block;font-size:12px;color:var(--muted);margin-bottom:1px}
+.walk-steps .q{font-weight:600}
+.walk-steps small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 .chg .then{font-size:13px;color:var(--muted);margin-right:4px}
 .chg .q{font-weight:600}
 .chg-hint{font-size:12.5px;color:var(--muted);margin:4px 0 0}
@@ -328,7 +333,6 @@ function visibleTabs(){
   const m = S.mode, t = [["flow","Interview"]];
   if(m !== "mm") ADECKS.forEach(k => t.push([k,k]));
   if(m === "mm") t.push(["TUTORIAL","Tutorial"]);
-  t.push(m==="bt"||m==="bs" ? ["PROJECT","Project"] : ["MASTER","Master project"]);
   t.push(["guide","Guide"]);
   return t;
 }
@@ -383,7 +387,7 @@ function renderClock(){
 }
 
 /* ---------- render: card ---------- */
-function whereFile(w){ const f = (w||"").split(" · ")[0]; return /\.cs\b/.test(f) ? f : ""; }
+function whereFile(w){ const m = (w||"").split(" · ")[0].match(/[\w.]+\.cs\b/); return m ? m[0] : ""; }
 function whereHTML(w){
   const i = w.indexOf(" · ");
   const a = i<0 ? w : w.slice(0,i), b = i<0 ? "" : w.slice(i+3);
@@ -408,6 +412,18 @@ function cardHTML(deckKey, c, opts){
 }
 
 /* ---------- render: interview tab ---------- */
+function walkHTML(){
+  const team = S.mode==="bt";
+  return `<div class="card walk">
+    <ol class="walk-steps">
+      <li><span class="ws">1 · Show</span><span class="q">“Which script are you working on right now? Can you show me?”</span><small>They pick here: it's their own work in progress.</small></li>
+      <li><span class="ws">2 · Explain</span><span class="q">“What does it do so far, and what are you trying to get working?”</span></li>
+      <li><span class="ws">3 · Next step</span><span class="q">“What would be a small first step? What do you think will happen?”</span><small>Then they type it: a <code>Debug.Log</code> to find a bug, the first lines of the next feature, or a fix. Help with ideas, not by dictating code.</small></li>
+      ${team ? `<li><span class="ws">4 · Teammate</span><span class="q">“Where does this connect to a teammate's code? What do you call, or what calls you?”</span></li>` : ""}
+    </ol>
+    <p class="chg-hint">Listen for: they find their way around, can say why it's built like this, and type a small change without help.</p>
+  </div>`;
+}
 function probeHTML(i){
   const p = S.probes[i], mode = MODES[S.mode];
   let title, sub, deckRow = "";
@@ -423,12 +439,11 @@ function probeHTML(i){
     }
   } else if(i===1){
     title = S.mode==="bt"||S.mode==="bs" ? "Check 2: Final Project" : "Check 2: XR Development Project";
-    sub = "Work in progress. Check what exists so far, finished or not. Code editor only.";
-    if(S.mode==="bt") sub += " Include a Trace into the teammate's code it connects to.";
+    sub = "No card here. Let them show what they're working on now, and help them with one small next step. It's a work in progress, so it doesn't have to work yet. Code editor only.";
   } else {
     title = "Check 3: a different file";
     sub = "Pick a file you haven't checked yet, ideally from another assignment.";
-    const decks = (S.mode==="mm" ? ["TUTORIAL"] : ADECKS).concat([mode.p2]);
+    const decks = S.mode==="mm" ? ["TUTORIAL"] : ADECKS;
     deckRow = `<div class="row"><span class="lab">Deck</span>${decks.map(k =>
       `<button class="chip" data-act="pick" data-p="2" data-v="${k}" aria-pressed="${p.deck===k}">${deckLabel(k)}</button>`).join("")}</div>`;
     if(p.deck && D[p.deck].about) deckRow += `<p class="about"><b>${esc(D[p.deck].title)}:</b> ${esc(D[p.deck].about)}</p>`;
@@ -437,7 +452,9 @@ function probeHTML(i){
   if(!S.modeChosen){
     return `<section class="step" data-phase="${["p1","p2","p3"][i]}"><div class="step-h"><h2>${title}</h2></div><p class="note">Pick the student type first.</p></section>`;
   }
-  if(p.card){
+  if(i===1){
+    body = walkHTML();
+  } else if(p.card){
     const c = findCard(p.card).card;
     body = cardHTML(p.deck, c, {probe:i, reveal:p.reveal,
       actions:`<div class="card-actions"><button class="btn small" data-act="redeal" data-p="${i}">Another card</button><button class="btn small" data-act="tab" data-v="${p.deck}">See all ${deckLabel(p.deck)} cards</button></div>`});
@@ -453,7 +470,7 @@ function probeHTML(i){
       <button class="chip res-clear" data-act="ai" data-p="${i}" data-v="yes" aria-pressed="${p.ai==="yes"}">Fits their AI path</button>
       <button class="chip res-doubt" data-act="ai" data-p="${i}" data-v="no" aria-pressed="${p.ai==="no"}">Doesn't fit</button>
       <button class="chip res-unclear" data-act="ai" data-p="${i}" data-v="unsure" aria-pressed="${p.ai==="unsure"}">Not sure</button></div>
-    <div class="row"><span class="lab">Note</span><input type="text" data-in="script" data-p="${i}" value="${esc(p.script)}" placeholder="e.g. showed their own EnemyAI.cs; needed a hint at Predict" aria-label="Note for this check" style="max-width:none;flex:1"></div>
+    <div class="row"><span class="lab">Note</span><input type="text" data-in="script" data-p="${i}" value="${esc(p.script)}" placeholder="${i===1 ? "e.g. working on WaveManager.cs, stuck on timing; added a Debug.Log for the wave count" : "e.g. showed their own EnemyAI.cs; needed a hint at Predict"}" aria-label="Note for this check" style="max-width:none;flex:1"></div>
     `;
   const phase = ["p1","p2","p3"][i];
   return `<section class="step" data-phase="${phase}"><div class="step-h"><h2>${title}</h2><span class="nowtag" hidden>now</span></div>
@@ -461,9 +478,11 @@ function probeHTML(i){
 }
 function copyText(i){
   const p = S.probes[i];
-  if(!p.deck && !p.result) return "";
-  const c = p.card ? findCard(p.card).card : null;
-  const parts = [deckLabel(p.deck)||"?"];
+  const walk = i===1;
+  if(!walk && !p.deck && !p.result) return "";
+  if(walk && !p.result && !p.ai && !p.script.trim()) return "";
+  const c = !walk && p.card ? findCard(p.card).card : null;
+  const parts = [walk ? (MODES[S.mode].p2==="PROJECT" ? "Project walk-through" : "Master project walk-through") : (deckLabel(p.deck)||"?")];
   if(c && whereFile(c.where)) parts.push(whereFile(c.where));
   if(c) parts.push(MOVES[c.move]);
   parts.push(p.result ? (p.result==="clear"?"Clear":"Unclear"+(p.fails.length?" ("+p.fails.join(", ").toLowerCase()+")":"")) : "no result");
@@ -635,7 +654,7 @@ function renderGuide(){
   <h2>In the room</h2>
   <ul>
   <li>Write notes during the slot; there is no separate note time.</li>
-  <li>Team members: one check in the sub-system, including a Trace into the teammate's code.</li>
+  <li>Check 2 has no card: they show what they're working on, you help with one small next step. Team members: also ask where it connects to a teammate's code.</li>
   <li>Masters on the Mentorship Path: check 1 on the tutorial package.</li>
   <li>A third check takes time from the check-in.</li>
   <li>Know them personally? Ask another TA to take over.</li>
@@ -688,7 +707,7 @@ document.addEventListener("click", e => {
       reset(true); live.clear(); break;
     case "suggest": { const k = suggestA(); S.sugg = k; const p = S.probes[0]; p.deck = k; p.card = deal(k).id; p.reveal = false; break; }
     case "pick": { const p = S.probes[i]; p.deck = v;
-      p.card = (i===1 && S.mode==="bt" && v==="PROJECT" && !p.card) ? "p-2" : deal(v).id; p.reveal = false; break; }
+      p.card = deal(v).id; p.reveal = false; break; }
     case "redeal": { const p = S.probes[i]; p.card = deal(p.deck, p.card).id; p.reveal = false; break; }
     case "use": { const f = findCard(v), p = S.probes[i]; p.deck = f.deck; p.card = v; p.reveal = false; S.tab = "flow"; break; }
     case "reveal": S.probes[i].reveal = !S.probes[i].reveal; break;
