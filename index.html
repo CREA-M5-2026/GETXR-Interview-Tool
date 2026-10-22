@@ -246,7 +246,7 @@ function needsThird(){ return verdict().k==="third" || !!S.probes[2].deck || !!S
 function phasesFor(mode){
   const third = needsThird(), st = MODES[mode].status;
   const list = [{id:"setup",n:"Setup",len:1},{id:"p1",n:"Check 1",len:5},{id:"p2",n:"Check 2",len:6}];
-  if(third) list.push({id:"p3",n:"Check 3",len:st?3:4});
+  if(third) list.push({id:"p3",n:"Check 3",len:3});
   if(st) list.push({id:"checkin",n:"Check-in",len:third?2:5});
   let e = 0; list.forEach(p => { e += p.len; p.e = e; });
   return list;
@@ -426,7 +426,7 @@ function probeHTML(i){
       deckRow = `<div class="row"><span class="lab">Assignment</span>${ADECKS.map(k =>
         `<button class="chip${S.sugg===k&&p.deck!==k?" sugg":""}" data-act="pick" data-p="${i}" data-v="${k}" aria-pressed="${p.deck===k}"${other===k&&p.deck!==k?" disabled title=\"Used in the other check\"":""}>${k}</button>`).join("")}
         <button class="btn small" data-act="suggest" data-p="${i}">Suggest one</button></div>
-        <p class="hint">Suggestions favour A4–A6.</p>`;
+        <p class="hint">Prefer A4–A6, or an assignment they resubmitted. Suggestions favour A4–A6.</p>`;
       if(p.deck && D[p.deck].about) deckRow += `<p class="about"><b>${esc(D[p.deck].title)}:</b> ${esc(D[p.deck].about)}</p>`;
     }
   } else {
@@ -594,7 +594,7 @@ function renderGuide(){
   <h2>The check cycle, twice</h2>
   <table><thead><tr><th>Step</th><th>You say</th><th>Watch for</th></tr></thead><tbody>
   <tr><td>Locate</td><td>Name a behaviour, not a file: “Show me where…”</td><td>Goes straight there, or searches file names</td></tr>
-  <tr><td>Explain</td><td>“Explain this in your own words.” One minute.</td><td>Talks about the effect in the game, or reads code aloud</td></tr>
+  <tr><td>Explain</td><td>“Walk me through this in your own words.” One minute.</td><td>Talks about the effect in the game, or reads code aloud</td></tr>
   <tr><td>Predict</td><td>Propose the change. “What do you think will happen?”</td><td>A concrete answer with a reason, or “it might break”</td></tr>
   <tr><td>Change</td><td>They type it, you don't dictate. Then they say what Play would show. No need to run it.</td><td>Types it without syntax being dictated</td></tr>
   <tr><td>Reconcile</td><td>If it differs: “Why did that happen?”</td><td>Authors usually work it out within a minute</td></tr>
