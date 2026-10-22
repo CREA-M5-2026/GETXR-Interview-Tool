@@ -78,7 +78,7 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.05e
 .pickfirst{border:1px dashed var(--accent);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:14px;background:var(--accent-t)}
 .modes.need .seg{box-shadow:0 0 0 2px var(--accent)}
 .ph:hover{filter:brightness(.97)}
-.btn:disabled{opacity:.45;cursor:default}
+.btn:disabled,.chip:disabled{opacity:.4;cursor:default}
 .tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
 .tabs button{border:0;background:transparent;padding:6px 9px 7px;font-size:13.5px;font-weight:500;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent}
@@ -231,10 +231,10 @@ const store = {
 
 /* ---------- config ---------- */
 const MODES = {
-  bt: { group:"Bachelor", label:"In an IMDEV team", tip:"Notion row shows a DEV team. Final Project is a sub-system of the IMDEV game.", short:"Bachelor, team", p1:"A", p2:"PROJECT", only:"team", status:true },
-  bs: { group:"Bachelor", label:"Solo XR demo", tip:"Notion row shows Solo. Final Project is a stand-alone XR demo.", short:"Bachelor, solo", p1:"A", p2:"PROJECT", only:"solo", status:true },
-  m:  { group:"Master", label:"Standard", tip:"Foundation assignments A1–A6 plus the XR Development Project.",           short:"Master",         p1:"A", p2:"MASTER",  status:false },
-  mm: { group:"Master", label:"Mentorship Path", tip:"Tutorial package instead of A1–A6, plus the XR Development Project.",       short:"Master, Mentorship Path", p1:"TUTORIAL", p2:"MASTER", status:false }
+  bt: { group:"Bachelor", label:"In an IMDEV team", tip:"Notion row shows a DEV team. Final Project is a sub-system of the IMDEV game.", short:"Bachelor, team", p1:"A", p2:"A", only:"team", status:true },
+  bs: { group:"Bachelor", label:"Solo XR demo", tip:"Notion row shows Solo. Final Project is a stand-alone XR demo.", short:"Bachelor, solo", p1:"A", p2:"A", only:"solo", status:true },
+  m:  { group:"Master", label:"Standard", tip:"Foundation assignments A1–A6 plus the XR Development Project.",           short:"Master",         p1:"A", p2:"A",  status:false },
+  mm: { group:"Master", label:"Mentorship Path", tip:"Tutorial package instead of A1–A6, plus the XR Development Project.",       short:"Master, Mentorship Path", p1:"TUTORIAL", p2:"TUTORIAL", status:false }
 };
 const ADECKS = ["A1","A2","A3","A4","A5","A6"];
 const WEIGHTS = {A1:1, A2:1, A3:1.5, A4:2, A5:2, A6:2};
@@ -412,34 +412,23 @@ function cardHTML(deckKey, c, opts){
 }
 
 /* ---------- render: interview tab ---------- */
-function walkHTML(){
-  const team = S.mode==="bt";
-  return `<div class="card walk">
-    <ol class="walk-steps">
-      <li><span class="ws">1 · Show</span><span class="q">“Which script are you working on right now? Can you show me?”</span><small>They pick here: it's their own work in progress.</small></li>
-      <li><span class="ws">2 · Explain</span><span class="q">“What does it do so far, and what are you trying to get working?”</span></li>
-      <li><span class="ws">3 · Next step</span><span class="q">“What would be a small first step? What do you think will happen?”</span><small>Then they type it: a <code>Debug.Log</code> to find a bug, the first lines of the next feature, or a fix. Help with ideas, not by dictating code.</small></li>
-      ${team ? `<li><span class="ws">4 · Teammate</span><span class="q">“Where does this connect to a teammate's code? What do you call, or what calls you?”</span></li>` : ""}
-    </ol>
-    <p class="chg-hint">Listen for: they find their way around, can say why it's built like this, and type a small change without help.</p>
-  </div>`;
-}
 function probeHTML(i){
   const p = S.probes[i], mode = MODES[S.mode];
   let title, sub, deckRow = "";
-  if(i===0){
-    title = mode.p1==="TUTORIAL" ? "Check 1: tutorial package" : "Check 1: foundation assignment";
-    sub = mode.p1==="TUTORIAL" ? "Tutorial project." : "Stay in the code editor. Ask what Play would show instead of running it.";
-    if(mode.p1==="A"){
+  if(i<2){
+    const kind = i===0 ? mode.p1 : mode.p2;
+    title = kind==="TUTORIAL" ? (i===0 ? "Check 1: tutorial package" : "Check 2: tutorial package, another part")
+                              : (i===0 ? "Check 1: foundation assignment" : "Check 2: another foundation assignment");
+    sub = kind==="TUTORIAL" ? (i===0 ? "Tutorial project." : "Tutorial project, a different script from check 1.")
+                            : (i===0 ? "Stay in the code editor. Ask what Play would show instead of running it." : "A different assignment from check 1. Code editor only, as before.");
+    if(kind==="A"){
+      const other = S.probes[1-i].deck;
       deckRow = `<div class="row"><span class="lab">Assignment</span>${ADECKS.map(k =>
-        `<button class="chip${S.sugg===k&&p.deck!==k?" sugg":""}" data-act="pick" data-p="0" data-v="${k}" aria-pressed="${p.deck===k}">${k}</button>`).join("")}
-        <button class="btn small" data-act="suggest">Suggest one</button></div>
+        `<button class="chip${S.sugg===k&&p.deck!==k?" sugg":""}" data-act="pick" data-p="${i}" data-v="${k}" aria-pressed="${p.deck===k}"${other===k&&p.deck!==k?" disabled title=\"Used in the other check\"":""}>${k}</button>`).join("")}
+        <button class="btn small" data-act="suggest" data-p="${i}">Suggest one</button></div>
         <p class="hint">Suggestions favour A4–A6.</p>`;
       if(p.deck && D[p.deck].about) deckRow += `<p class="about"><b>${esc(D[p.deck].title)}:</b> ${esc(D[p.deck].about)}</p>`;
     }
-  } else if(i===1){
-    title = S.mode==="bt"||S.mode==="bs" ? "Check 2: Final Project" : "Check 2: XR Development Project";
-    sub = "No card here. Let them show what they're working on now, and help them with one small next step. It's a work in progress, so it doesn't have to work yet. Code editor only.";
   } else {
     title = "Check 3: a different file";
     sub = "Pick a file you haven't checked yet, ideally from another assignment.";
@@ -452,14 +441,12 @@ function probeHTML(i){
   if(!S.modeChosen){
     return `<section class="step" data-phase="${["p1","p2","p3"][i]}"><div class="step-h"><h2>${title}</h2></div><p class="note">Pick the student type first.</p></section>`;
   }
-  if(i===1){
-    body = walkHTML();
-  } else if(p.card){
+  if(p.card){
     const c = findCard(p.card).card;
     body = cardHTML(p.deck, c, {probe:i, reveal:p.reveal,
       actions:`<div class="card-actions"><button class="btn small" data-act="redeal" data-p="${i}">Another card</button><button class="btn small" data-act="tab" data-v="${p.deck}">See all ${deckLabel(p.deck)} cards</button></div>`});
   } else {
-    body = `<div class="empty">${i===0&&mode.p1==="A" ? "Pick an assignment to get a card." : "No card yet."}${i>0||mode.p1!=="A" ? ` <button class="btn small" data-act="pick" data-p="${i}" data-v="${i===1?mode.p2:(mode.p1==="A"?"A4":mode.p1)}">Deal a card</button>`:""}</div>`;
+    body = `<div class="empty">${(i===0&&mode.p1==="A") ? "Pick an assignment to get a card." : i===1&&mode.p2==="A" ? "Pick a different assignment to get a card." : "No card yet."}${(i===0?mode.p1:i===1?mode.p2:"A")!=="A" || i===2 ? ` <button class="btn small" data-act="pick" data-p="${i}" data-v="${i===2 ? (S.mode==="mm"?"TUTORIAL":suggestA()) : (i===0?mode.p1:mode.p2)}">Deal a card</button>`:""}</div>`;
   }
   const res = `<div class="row"><span class="lab">Result</span>
       <button class="chip res-clear" data-act="res" data-p="${i}" data-v="clear" aria-pressed="${p.result==="clear"}">Clear</button>
@@ -470,7 +457,7 @@ function probeHTML(i){
       <button class="chip res-clear" data-act="ai" data-p="${i}" data-v="yes" aria-pressed="${p.ai==="yes"}">Fits their AI path</button>
       <button class="chip res-doubt" data-act="ai" data-p="${i}" data-v="no" aria-pressed="${p.ai==="no"}">Doesn't fit</button>
       <button class="chip res-unclear" data-act="ai" data-p="${i}" data-v="unsure" aria-pressed="${p.ai==="unsure"}">Not sure</button></div>
-    <div class="row"><span class="lab">Note</span><input type="text" data-in="script" data-p="${i}" value="${esc(p.script)}" placeholder="${i===1 ? "e.g. working on WaveManager.cs, stuck on timing; added a Debug.Log for the wave count" : "e.g. showed their own EnemyAI.cs; needed a hint at Predict"}" aria-label="Note for this check" style="max-width:none;flex:1"></div>
+    <div class="row"><span class="lab">Note</span><input type="text" data-in="script" data-p="${i}" value="${esc(p.script)}" placeholder="e.g. showed their own EnemyAI.cs; needed a hint at Predict" aria-label="Note for this check" style="max-width:none;flex:1"></div>
     `;
   const phase = ["p1","p2","p3"][i];
   return `<section class="step" data-phase="${phase}"><div class="step-h"><h2>${title}</h2><span class="nowtag" hidden>now</span></div>
@@ -478,11 +465,9 @@ function probeHTML(i){
 }
 function copyText(i){
   const p = S.probes[i];
-  const walk = i===1;
-  if(!walk && !p.deck && !p.result) return "";
-  if(walk && !p.result && !p.ai && !p.script.trim()) return "";
-  const c = !walk && p.card ? findCard(p.card).card : null;
-  const parts = [walk ? (MODES[S.mode].p2==="PROJECT" ? "Project walk-through" : "Master project walk-through") : (deckLabel(p.deck)||"?")];
+  if(!p.deck && !p.result) return "";
+  const c = p.card ? findCard(p.card).card : null;
+  const parts = [deckLabel(p.deck)||"?"];
   if(c && whereFile(c.where)) parts.push(whereFile(c.where));
   if(c) parts.push(MOVES[c.move]);
   parts.push(p.result ? (p.result==="clear"?"Clear":"Unclear"+(p.fails.length?" ("+p.fails.join(", ").toLowerCase()+")":"")) : "no result");
@@ -535,7 +520,7 @@ function renderFlow(){
   ${S.modeChosen ? "" : `<div class="pickfirst">Pick the student type at the top first. Look at <b>IMDEV team</b> in their Notion row: DEV01–18 → In an IMDEV team. Solo → Solo XR demo. Master → Standard, or Mentorship Path if <b>Path</b> says Mentorship.</div>`}
   <section class="step" data-phase="setup"><div class="step-h"><h2>Setup</h2><span class="t">1 min</span><span class="nowtag" hidden>now</span></div>
     <ul class="checks">
-      <li>${S.mode==="mm" ? "Tutorial project and XR Development Project" : S.mode==="m" ? "XR Development Project and A1–A6" : "Final Project and A1–A6"} open in the code editor. Unity isn't needed.</li>
+      <li>${S.mode==="mm" ? "Tutorial project" : "A1–A6"} open in the code editor${MODES[S.mode].status ? ", and their Final Project for the check-in" : ""}. Unity isn't needed.</li>
       <li>Their Notion row open. The AI path is at the top.</li>
     </ul>
     <div class="row"><span class="lab">AI path</span>
@@ -574,9 +559,12 @@ function statusHTML(team){
   const topics = window.ADVICE.filter(t => !t.only || t.only === only);
   const cur = topics.find(t => t.id === S.advice);
   return `<section class="step" data-phase="checkin"><div class="step-h"><h2>Project check-in</h2><span class="t">5 min</span><span class="nowtag" hidden>now</span></div>
-    <p class="note">They bring two points. Listen, ask what they've tried, then help them find one concrete next step.</p>
-    <p class="quote">1. What is the main challenge in your own ${team?"part of the project":"project"} right now?</p>
-    <p class="quote">2. ${team ? "Where does your code connect to a teammate's code? What is still unclear or not agreed?" : "What is still open in the XR part of your demo?"}</p>
+    <p class="note">No cards and no testing here. This is about their Final Project, a work in progress: let them show what they're busy with, and help with one specific next step.</p>
+    <div class="card walk"><ol class="walk-steps">
+      <li><span class="ws">1 · Show</span><span class="q">“What are you working on right now? Can you show me?”</span><small>They open the script or scene they're busy with.</small></li>
+      <li><span class="ws">2 · Their two points</span><span class="q">“What is the main challenge in your ${team?"part of the project":"project"} right now?”</span><span class="q" style="display:block;margin-top:4px">“${team ? "Where does your code connect to a teammate's code? What is still unclear or not agreed?" : "What is still open in the XR part of your demo?"}”</span></li>
+      <li><span class="ws">3 · Help with a next step</span><span class="q">“What have you tried so far? What would be a small next step?”</span><small>Get specific: which script, which method, what to try first. Use the ideas below if they help.</small></li>
+    </ol></div>
     <div class="row"><span class="lab">Ideas for</span>${topics.map(t =>
       `<button class="chip" data-act="advice" data-v="${t.id}" aria-pressed="${S.advice===t.id}">${esc(t.label)}</button>`).join("")}</div>
     ${cur ? `<ul class="tips">${cur.tips.map(x=>`<li>${rich(x)}</li>`).join("")}</ul>` : ""}
@@ -591,7 +579,8 @@ function renderDeck(k){
   const d = D[k], cards = cardsFor(k);
   const target = S.probes.findIndex((p,i) => !p.card && (i<2 || verdict().k==="third"));
   const btns = c => {
-    const allowed = [0,1,2].filter(i => i===2 || (i===0 ? (MODES[S.mode].p1==="A" ? k.startsWith("A") : k===MODES[S.mode].p1) : k===MODES[S.mode].p2));
+    const kindOf = i => i===0 ? MODES[S.mode].p1 : MODES[S.mode].p2;
+    const allowed = [0,1,2].filter(i => i===2 || (kindOf(i)==="A" ? k.startsWith("A") : k===kindOf(i)));
     return `<div class="card-actions">${allowed.map(i=>`<button class="btn small" data-act="use" data-p="${i}" data-v="${c.id}">Use for check ${i+1}</button>`).join("")}</div>`;
   };
   return `<h2 class="deck-h">${esc(d.title)}</h2>${d.about?`<p class="about">${esc(d.about)}</p>`:""}<p class="deck-sub">${esc(d.files)}. Pick any card, or let the interview tab deal one.</p>
@@ -654,7 +643,7 @@ function renderGuide(){
   <h2>In the room</h2>
   <ul>
   <li>Write notes during the slot; there is no separate note time.</li>
-  <li>Check 2 has no card: they show what they're working on, you help with one small next step. Team members: also ask where it connects to a teammate's code.</li>
+  <li>Check 1 and check 2 are on two different foundation assignments (Mentorship Path: two parts of the tutorial package). The Final Project is not checked: the check-in is support only.</li>
   <li>Masters on the Mentorship Path: check 1 on the tutorial package.</li>
   <li>A third check takes time from the check-in.</li>
   <li>Know them personally? Ask another TA to take over.</li>
@@ -705,9 +694,10 @@ document.addEventListener("click", e => {
     case "next":
       if(!S.copied && !S.armedNext && hasData()){ S.armedNext = true; renderChrome(); return; }
       reset(true); live.clear(); break;
-    case "suggest": { const k = suggestA(); S.sugg = k; const p = S.probes[0]; p.deck = k; p.card = deal(k).id; p.reveal = false; break; }
+    case "suggest": { const k = suggestA(); S.sugg = k; const p = S.probes[i ?? 0]; p.deck = k; p.card = deal(k).id; p.reveal = false; break; }
     case "pick": { const p = S.probes[i]; p.deck = v;
-      p.card = deal(v).id; p.reveal = false; break; }
+      const used = S.probes.filter((q,j)=>j!==i && q.deck===v).map(q=>q.card);
+      p.card = deal(v, used[0]).id; p.reveal = false; break; }
     case "redeal": { const p = S.probes[i]; p.card = deal(p.deck, p.card).id; p.reveal = false; break; }
     case "use": { const f = findCard(v), p = S.probes[i]; p.deck = f.deck; p.card = v; p.reveal = false; S.tab = "flow"; break; }
     case "reveal": S.probes[i].reveal = !S.probes[i].reveal; break;
