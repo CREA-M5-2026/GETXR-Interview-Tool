@@ -35,11 +35,12 @@ body[data-mode="m"],body[data-mode="mm"]{--accent:var(--master);--accent-t:var(-
 
 *{box-sizing:border-box}
 html,body{margin:0}
+html{zoom:1.1}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;cursor:pointer}
 :focus-visible{outline:2px solid var(--muted);outline-offset:2px}
 code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.05em .3em;border-radius:3px}
-.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px}
 
 /* top bar */
 .bar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
@@ -257,8 +258,8 @@ const blankProbe = () => ({deck:null, card:null, reveal:false, result:null, fail
 let S, scrollTarget = null;
 function scrollToPhase(id){
   const el = document.querySelector(`#main [data-phase="${id}"]`); if(!el) return;
-  const top = el.getBoundingClientRect().top + window.scrollY - document.querySelector(".bar").offsetHeight - 12;
-  window.scrollTo({top: Math.max(0, top), behavior: "smooth"});
+  const delta = el.getBoundingClientRect().top - document.querySelector(".bar").getBoundingClientRect().bottom - 14;
+  window.scrollBy({top: delta, behavior: "smooth"});
 }
 function reset(keepMode){
   const mode = keepMode && S ? S.mode : (store.get("crg-mode","bt"));
@@ -671,9 +672,19 @@ function copyOut(text){
   if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(text).then(()=>done(true), fallback); }
   else fallback();
 }
+/* Working in a section starts the timer (first action) and moves the phase bar forward to that section. */
+function followSection(el){
+  if(!el || !el.closest("#main") || S.tab !== "flow" || !S.modeChosen) return false;
+  const sec = el.closest("[data-phase]"); if(!sec) return false;
+  if(!S.timer.running && elapsed()===0){ S.timer.start = Date.now(); S.timer.running = true; }
+  const ph = phasesFor(S.mode), to = ph.findIndex(x => x.id === sec.dataset.phase), from = ph.findIndex(x => x.id === S.phase);
+  if(to > from){ S.phase = ph[to].id; S.phaseAt = elapsed(); }
+  return true;
+}
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if(!b) return;
   const a = b.dataset.act, v = b.dataset.v, i = b.dataset.p !== undefined ? Number(b.dataset.p) : null;
+  if(!["tab","reveal","phase","timer","next"].includes(a)) followSection(b);
   if(a !== "next" && S.armedNext){ S.armedNext = false; }
   if(!["next","tab","copynotes","timer","nextphase","phase","reveal"].includes(a)) S.copied = false;
   switch(a){
@@ -714,6 +725,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("input", e => {
   const t = e.target, k = t.dataset.in; if(!k) return;
+  if(followSection(t)) renderClock();
   if(k === "script") S.probes[Number(t.dataset.p)].script = t.value;
   else if(k === "unprepared") S.unprepared = t.checked;
   else if(["saw","ci1","ci2"].includes(k)) S[k] = t.value;
