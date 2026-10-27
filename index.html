@@ -689,6 +689,7 @@ document.addEventListener("click", e => {
   if(!["next","tab","copynotes","timer","nextphase","phase","reveal"].includes(a)) S.copied = false;
   switch(a){
     case "mode": S.mode = v; S.modeChosen = true; store.set("crg-mode", v); S.advice = null;
+      if(!S.timer.running && elapsed()===0){ S.timer.start = Date.now(); S.timer.running = true; }
       // reset check decks that no longer fit
       S.probes.forEach(p => { if(p.card && !cardsFor(p.deck).some(c=>c.id===p.card)) Object.assign(p, blankProbe()); });
       break;
