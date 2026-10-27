@@ -274,9 +274,10 @@ const live = {
   save(){ try{ sessionStorage.setItem("crg-live", JSON.stringify(S)); }catch(e){} },
   clear(){ try{ sessionStorage.removeItem("crg-live"); }catch(e){} }
 };
+const OUTCOMES_OK = [null,"pass","doubt"];
 reset(false);
 { const saved = live.load();
-  if(saved && saved.probes && saved.timer && MODES[saved.mode]) S = Object.assign(S, saved, {armedNext:false}); }
+  if(saved && saved.probes && saved.timer && MODES[saved.mode]) S = Object.assign(S, saved, {armedNext:false}); if(!OUTCOMES_OK.includes(S.outcome)) S.outcome = null; }
 
 /* ---------- dealing with rotation ---------- */
 function cardsFor(deckKey){
@@ -476,7 +477,7 @@ function copyText(i){
   if(p.script.trim()) parts.push("note: "+p.script.trim());
   return parts.join(" · ");
 }
-const OUTCOMES = {pass:"Pass", doubt:"Doubt", needs:"Needs Maro"};
+const OUTCOMES = {pass:"Pass", doubt:"Doubt"};
 function hasData(){
   return S.probes.some(p => p.deck || p.result || p.ai || p.script) || S.outcome || S.saw || S.ci1 || S.unprepared || S.aiPath;
 }
@@ -551,8 +552,8 @@ function verdictHTML(v){
   return `  <div class="verdict ${v.k}"><h2>${v.h}</h2><p class="note" style="color:inherit">${v.t}</p>
     <div class="row"><span class="lab">Outcome</span>${Object.entries(OUTCOMES).map(([k,l]) =>
       `<button class="chip" data-act="outcome" data-v="${k}" aria-pressed="${finalOutcome()===k}">${l}</button>`).join("")}</div>
-    <p class="hint">The guide picks one when it can. Change it if you disagree. <b>Needs Maro</b>: the check couldn't run properly, e.g. no code to look at, or the slot was cut short.</p>
-    ${["doubt","needs"].includes(finalOutcome()) ? `<div class="field"><label for="saw">What I saw</label><textarea class="ta" id="saw" data-in="saw" placeholder="${finalOutcome()==="needs"?"e.g. project code not on their laptop and not in GitLab":"e.g. couldn't predict what removing deltaTime does; said a friend helped"}">${esc(S.saw)}</textarea></div>` : ""}
+    <p class="hint">The guide picks one when it can. Change it if you disagree.</p>
+    ${finalOutcome()==="doubt" ? `<div class="field"><label for="saw">What I saw</label><textarea class="ta" id="saw" data-in="saw" placeholder="e.g. couldn't predict what removing deltaTime does; said a friend helped">${esc(S.saw)}</textarea></div>` : ""}
     </div>`;
 }
 function statusHTML(team){
@@ -619,7 +620,6 @@ function renderGuide(){
   <li>One unclear: a third check on a different file. Clear: Pass. Still unclear: <b>Doubt</b>.</li>
   <li>Their account doesn't fit the declared AI path: <b>Doubt</b>.</li>
   <li>Doubt isn't a fail. It means: write down what you saw in the guide's “What I saw” box, so Maro has something concrete to follow up on. TAs never mark Fail.</li>
-  <li>Couldn't run the check properly (no code to look at, slot cut short): <b>Needs Maro</b>.</li>
   <li>Don't argue it out or hint that something is wrong. Move on to the next check.</li>
   </ul>
 
@@ -628,7 +628,7 @@ function renderGuide(){
   <li><b>Repo not cloned:</b> open the code in GitLab's web view and check there.</li>
   <li><b>No laptop or an empty battery:</b> the same, on your laptop.</li>
   <li><b>Little project code so far:</b> that's normal, it's a work-in-progress check. Check the newest code they wrote, even if it doesn't work yet.</li>
-  <li><b>No code to look at, or the slot was cut short:</b> Outcome <b>Needs Maro</b>, and say what happened under “What I saw”.</li>
+  <li><b>No code to look at, or the slot was cut short:</b> Outcome <b>Doubt</b>, and say what happened under “What I saw”.</li>
   </ul>
 
   <h2>Change moves</h2>
