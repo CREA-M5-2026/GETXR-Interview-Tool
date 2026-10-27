@@ -137,6 +137,7 @@ input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--su
 .where .wl{font-size:12px;color:var(--muted)}
 .where b{color:var(--fg);font-family:var(--mono);font-size:13px;font-weight:700;background:var(--accent-t);border:1px solid var(--accent);border-radius:4px;padding:1px 7px}
 .where span:last-child{color:var(--fg)}
+.nexthint{border:1px dashed var(--line);border-radius:8px;padding:10px 16px;margin:0 0 12px;color:var(--muted);font-size:13.5px}
 .walk-steps{margin:0 0 10px;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
 .walk-steps li{line-height:1.45}
 .walk-steps .ws{display:block;font-size:12px;color:var(--muted);margin-bottom:1px}
@@ -515,9 +516,17 @@ function aiHint(){
   if(!S.aiPath) return `<div class="ai"><p>Ask in every check: <i>“How did you write this code?”</i></p><p>Tick their AI path from the Notion row to see what to listen for. “Switched to …”: tick the path they switched to, and ask when they switched.</p></div>`;
   return `<div class="ai"><p>Ask in every check: <i>“How did you write this code?”</i></p><p>${S.aiPath==="noai" ? no : yes}</p><p>If it doesn't fit their declared path, note what they said and mark Doubt.</p></div>`;
 }
+function nextHint(t){ return `<p class="nexthint">${t}</p>`; }
 function renderFlow(){
   const mode = MODES[S.mode], v = verdict(), p3 = v.k==="third" || S.probes[2].deck || S.probes[2].result;
   const team = S.mode==="bt";
+  // Sections appear one after another as the TA works through them. Jumping ahead on the phase bar also reveals them.
+  const ph = phasesFor(S.mode), at = id => { const i = ph.findIndex(x => x.id === id); return i >= 0 && ph.findIndex(x => x.id === S.phase) >= i; };
+  const vis = {};
+  vis.p1 = S.modeChosen && (!!S.aiPath || at("p1"));
+  vis.p2 = vis.p1 && (!!S.probes[0].result || at("p2"));
+  vis.end = vis.p2 && (p3 ? !!S.probes[2].result : !!S.probes[1].result) || (vis.p2 && (!!S.outcome || at("checkin")));
+  if(!S.modeChosen) return `<div class="pickfirst">Pick the student type at the top first. Look at <b>IMDEV team</b> in their Notion row: DEV01–18 → In an IMDEV team. Solo → Solo XR demo. Master → Standard, or Mentorship Path if <b>Path</b> says Mentorship.</div>`;
   return `
   ${S.modeChosen ? "" : `<div class="pickfirst">Pick the student type at the top first. Look at <b>IMDEV team</b> in their Notion row: DEV01–18 → In an IMDEV team. Solo → Solo XR demo. Master → Standard, or Mentorship Path if <b>Path</b> says Mentorship.</div>`}
   <section class="step" data-phase="setup"><div class="step-h"><h2>Setup</h2><span class="t">1 min</span><span class="nowtag" hidden>now</span></div>
@@ -539,13 +548,13 @@ function renderFlow(){
     </ol>
     <p class="hint">No AI during the interview. Undo each change afterwards (discard in GitHub Desktop).</p>
   </section>
-  ${probeHTML(0)}
-  ${probeHTML(1)}
-  ${p3 ? probeHTML(2) : ""}
-  ${S.modeChosen ? verdictHTML(v) : ""}
-  ${!S.modeChosen ? "" : mode.status ? statusHTML(team) : `<section class="step" data-phase="handover"><div class="step-h"><h2>Hand over</h2></div><p class="note">Check done. Send them to Maro's table for the 10-minute talk.</p></section>`}
-  ${S.modeChosen ? toNotionHTML() : ""}
-  <div class="endrow"><button class="btn" data-act="next">Clear</button></div>
+  ${vis.p1 ? probeHTML(0) : nextHint("Tick their AI path to start check 1.")}
+  ${!vis.p1 ? "" : vis.p2 ? probeHTML(1) : nextHint("Mark check 1 as Clear or Unclear to go on to check 2.")}
+  ${vis.p2 && p3 ? probeHTML(2) : ""}
+  ${!vis.p2 ? "" : vis.end ? verdictHTML(v) : nextHint(p3 ? "Mark check 3 as Clear or Unclear to see the outcome." : "Mark check 2 as Clear or Unclear to see the outcome.")}
+  ${!vis.end ? "" : mode.status ? statusHTML(team) : `<section class="step" data-phase="handover"><div class="step-h"><h2>Hand over</h2></div><p class="note">Check done. Send them to Maro's table for the 10-minute talk.</p></section>`}
+  ${vis.end ? toNotionHTML() : ""}
+  ${S.modeChosen ? `<div class="endrow"><button class="btn" data-act="next">Clear</button></div>` : ""}
   `;
 }
 function verdictHTML(v){
